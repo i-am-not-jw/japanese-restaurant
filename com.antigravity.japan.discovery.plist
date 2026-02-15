@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.antigravity.japan.discovery</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/bin/python3</string>
+        <string>/Users/jw/Desktop/antigravity/orchestrator.py</string>
+    </array>
+    <key>StartCalendarInterval</key>
+    <dict>
+        <key>Weekday</key>
+        <integer>1</integer>
+        <key>Hour</key>
+        <integer>0</integer>
+        <key>Minute</key>
+        <integer>0</integer>
+    </dict>
+    <key>WorkingDirectory</key>
+    <string>/Users/jw/Desktop/antigravity</string>
+    <key>StandardOutPath</key>
+    <string>/Users/jw/Desktop/antigravity/.tmp/orchestrator.log</string>
+    <key>StandardErrorPath</key>
+    <string>/Users/jw/Desktop/antigravity/.tmp/orchestrator_error.log</string>
+</dict>
+</plist>
