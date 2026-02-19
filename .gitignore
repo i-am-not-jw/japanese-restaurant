@@ -1,0 +1,19 @@
+# Temporary files
+.tmp/
+
+# IDE settings
+.vscode/
+
+# Python caching
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment variables and credentials
+.env
+credentials.json
+token.json
+
+# OS specific files
+.DS_Store
+Thumbs.db
