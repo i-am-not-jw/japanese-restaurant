@@ -36,7 +36,7 @@ def generate_markdown_report(data):
 def main():
     base_dir = os.getcwd()
     execution_dir = os.path.join(base_dir, "execution")
-    tmp_dir = os.path.join(base_dir, ".tmp")
+    tmp_dir = "/tmp/antigravity_tmp"
     os.makedirs(tmp_dir, exist_ok=True)
     
     # 1. SNS Scanner
@@ -49,7 +49,18 @@ def main():
         print("Tabelog lookup failed.")
         return
         
-    # 3. Load Results and Generate Report
+    # 3. Google Maps Lookup (New)
+    print("--- Google Maps Verification ---")
+    if not run_script(os.path.join(execution_dir, "google_maps_lookup.py")):
+        print("Google Maps lookup failed.")
+        
+    # 4. Notion Publisher (Added)
+    print("--- Publishing to Notion ---")
+    if not run_script(os.path.join(execution_dir, "notion_publisher.py")):
+        print("Notion publication failed.")
+        # We continue even if Notion fails to generate the local report
+        
+    # 4. Load Results and Generate Report
     report_data_path = os.path.join(tmp_dir, "tabelog_report.json")
     if os.path.exists(report_data_path):
         with open(report_data_path, "r", encoding="utf-8") as f:
