@@ -6,15 +6,40 @@ Collects: name, score, address, thumbnail, tabelog_url,
           cuisine (for tags), region (for gallery grouping).
 Filters Korean cuisine. Saves to tabelog_report.json.
 """
-import os, re, json, time, random, requests
+import os, re, json, time, random, requests, sys
 from bs4 import BeautifulSoup
 from datetime import datetime
 
+# Load Environment Variables for Gemini
+def load_env():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    env_path = os.path.normpath(os.path.join(script_dir, "..", ".env"))
+    if os.path.exists(env_path):
+        try:
+            with open(env_path, "r") as f:
+                for line in f:
+                    if "=" in line and not line.startswith("#"):
+                        k, v = line.strip().split("=", 1)
+                        os.environ.setdefault(k, v)
+        except PermissionError:
+            pass
+
+load_env()
+GEMINI_KEY = os.getenv("GEMINI_API_KEY") or "AIzaSyDgxh1klUXODqhlIStnhU51yheeu3xxewg"
+
 HEADERS = {
-    "User-Agent": ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
-                   "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"),
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)",
     "Accept-Language": "ja-JP,ja;q=0.9",
 }
+# Load custom station dictionary to prevent unnecessary API calls and missing fallbacks
+STATION_CACHE = {}
+_custom_dict_path = os.path.join(os.path.dirname(__file__), "custom_stations_ko.json")
+if os.path.exists(_custom_dict_path):
+    try:
+        with open(_custom_dict_path, "r", encoding="utf-8") as _f:
+            STATION_CACHE = json.load(_f)
+    except:
+        pass
 
 KOREAN_EXCLUDE = ["韓国", "コリアン", "キムチ", "チゲ", "ビビンバ",
                   "サムギョプサル", "チャンジャ", "冷麺", "Korean"]
@@ -23,11 +48,78 @@ REGION_MAP = {
     "tokyo": "도쿄", "osaka": "오사카", "kyoto": "교토",
     "fukuoka": "후쿠오카", "sapporo": "삿포로", "hokkaido": "홋카이도",
     "kanagawa": "가나가와", "aichi": "나고야", "hyogo": "고베",
-    "okinawa": "오키나와",
+    "okinawa": "오키나와", "saitama": "사이타마", "chiba": "치바",
+    "hiroshima": "히로시마", "kagoshima": "가고시마", "shizuoka": "시즈오카",
+    "kumamoto": "구마모토", "kagawa": "가가와", "miyagi": "미야기",
+    "nagano": "나가노", "ishikawa": "이시카와", "hakodate": "하코다테"
 }
 
 def is_korean(text):
     return any(k in text for k in KOREAN_EXCLUDE)
+
+def get_korean_station_name(japanese_station_name):
+    raw_name = japanese_station_name.replace("駅", "").replace("JR", "").replace("地下鉄", "").replace("各線", "").strip()
+    if not raw_name:
+        return ""
+    if raw_name in STATION_CACHE:
+        return STATION_CACHE[raw_name]
+        
+    search_term = f"{raw_name}駅"
+    url = "https://ja.wikipedia.org/w/api.php"
+    params = {
+        "action": "query",
+        "prop": "langlinks",
+        "lllang": "ko",
+        "titles": search_term,
+        "format": "json"
+    }
+    
+    try:
+        resp = requests.get(url, headers=HEADERS, params=params, timeout=5)
+        if resp.status_code == 200:
+            data = resp.json()
+            pages = data.get("query", {}).get("pages", {})
+            for page_id, page_data in pages.items():
+                if int(page_id) > 0 and "langlinks" in page_data:
+                    ko_title = page_data["langlinks"][0]["*"]
+                    # Extract pure name without '역' to store in cache, we append it later
+                    pure = ko_title.replace("역", "")
+                    STATION_CACHE[raw_name] = pure
+                    return ko_title
+    except Exception as e:
+        print(f"    [WARN] Wikipedia API error for {search_term}: {e}")
+        
+    # AI Fallback: Use Gemini to forcefully translate edge-case station names
+    if GEMINI_KEY:
+        print(f"    [AI RESCUE] Invoking Gemini for untranslated station: {raw_name}")
+        prompt = (
+            f"일본의 기차역/지하철역 이름 '{raw_name}'을(를) 한국어 발음대로 번역해주세요. "
+            "출력은 역 이름 뒷부분의 '역'을 제외한 순수 역 이름만 출력해야 합니다. "
+            "(예: 우메다, 신주쿠, 오도리, 시부야 등). 일절 다른 부연 설명을 덧붙이지 마세요."
+        )
+        url_pro = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_KEY}"
+        payload = {"contents": [{"parts": [{"text": prompt}]}]}
+        try:
+            resp2 = requests.post(url_pro, json=payload, timeout=10)
+            if resp2.status_code == 200:
+                ai_pure_name = resp2.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+                ai_pure_name = ai_pure_name.replace("역", "").strip()
+                if ai_pure_name:
+                    STATION_CACHE[raw_name] = ai_pure_name
+                    print(f"      -> AI Translated: {ai_pure_name}")
+                    return f"{ai_pure_name}역"
+            elif resp2.status_code == 429:
+                print(f"    [RATELIMIT] Gemini Flash-latest 429 Too Many Requests -> Exiting")
+                sys.exit(429)
+        except SystemExit:
+            raise
+        except Exception as e:
+            print(f"      -> AI Rescue Failed: {e}")
+
+    # Final Fallback: Warning log so user can add it to JSON manually later
+    print(f"    [WARNING] 미번역 역 감지됨 (Wikipedia & AI 실패): {raw_name}")
+    STATION_CACHE[raw_name] = raw_name
+    return f"{raw_name}역"
 
 def extract_detail(url):
     """Fetch address, thumbnail, latest 5 reviews + dates, total review count."""
@@ -125,6 +217,7 @@ def extract_detail(url):
                     reviews.append({"date": date_str, "text": text[:300]})
         # Extract Info Table (Opening Hours, Card, etc.)
         hours = ""
+        station_info = ""
         payment_tags = []
         
         table = soup.select_one(".rstinfo-table")
@@ -169,11 +262,88 @@ def extract_detail(url):
                 elif "電子マネー" in header:
                     if "可" in content:
                         if "간편결제 가능" not in payment_tags: payment_tags.append("간편결제 가능")
+                elif "交通手段" in header:
+                    # Clean newlines and spaces to make searching easier
+                    s = re.sub(r"\s+", " ", content)
+                    
+                    # Case 4: Bus stop
+                    if "バス" in s or "停留所" in s or "バス停" in s:
+                        bus_m = re.match(r"(.*?)バス", s)
+                        if bus_m:
+                            bus_name = bus_m.group(1).strip()
+                            bus_name = re.sub(r"[「」『』\[\]【】\(\)（）｢｣<>]|\s+", "", bus_name).strip()
+                            station_info = f"🚌 {bus_name} 버스 주변"
+                            continue
+                            
+                    # Extract station name and distance metrics anywhere in the text
+                    # Look for [StationName]駅 から [xx]m or 徒歩[xx]分
+                    # Example target: "西川越駅から665m" or "渋谷駅から徒歩5分"
+                    station_m = re.search(r"([^\s「」『』\[\]【】\(\)（）｢｣<>・]+)駅(?:.*?)(徒歩(\d+)分|(\d+)m)", s)
+                    if not station_m:
+                        # Fallback: maybe just "XXX駅" exists
+                        station_m = re.search(r"([^\s「」『』\[\]【】\(\)（）｢｣<>・]+?)駅", s)
+                        
+                    if station_m:
+                        raw_jp_full = station_m.group(1).strip()
+                        prefix = ""
+                        raw_jp = raw_jp_full
+                        
+                        # 1. Extract and preserve Line names
+                        line_match = re.search(r"^([^線]+線)\s*(.*)", raw_jp)
+                        if line_match:
+                            prefix += line_match.group(1) + " "
+                            raw_jp = line_match.group(2)
+                        
+                        # 2. Extract and preserve Company names
+                        comp_match = re.search(r"^(JR|京王|小田急|都営|メトロ|地下鉄|近鉄|名鉄|阪急|京阪|市営|名市交)\s*(.*)", raw_jp)
+                        if comp_match:
+                            prefix += comp_match.group(1) + " "
+                            raw_jp = comp_match.group(2)
+                            
+                        ko_station = get_korean_station_name(raw_jp)
+                        if not ko_station.endswith("역"):
+                            ko_station = f"{ko_station}역"
+                        
+                        ko_prefix = prefix.strip()
+                        if ko_prefix:
+                            cache_key = f"prefix_{ko_prefix}"
+                            if cache_key in STATION_CACHE:
+                                ko_prefix = STATION_CACHE[cache_key]
+                            elif GEMINI_KEY:
+                                print(f"    [AI] Translating railway line: {ko_prefix}")
+                                prompt = f"일본의 철도 노선명 또는 회사명 '{ko_prefix}'을(를) 한국어 발음대로 번역하세요. (예: 地下鉄七隈線 -> 지하철 나나쿠마선, JR -> JR, 京阪本線 -> 게이한 본선). 한자 뜻 번역이 아니라 발음대로 적고, '선'이나 '지하철' 같은 단어만 한국어로 바꾸세요. 딱 번역 결과만 출력하세요."
+                                url_pro = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_KEY}"
+                                try:
+                                    resp2 = requests.post(url_pro, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=10)
+                                    if resp2.status_code == 200:
+                                        ai_prefix = resp2.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+                                        if ai_prefix:
+                                            STATION_CACHE[cache_key] = ai_prefix
+                                            ko_prefix = ai_prefix
+                                            print(f"      -> Prefix Translated: {ai_prefix}")
+                                except Exception as e:
+                                    pass
+
+                        # Clean up prefix deterministically
+                        ko_prefix = ko_prefix.replace("지하철 ", "").replace("지하철", "").replace("地下鉄", "")
+                        ko_prefix = ko_prefix.replace("・", "").strip()
+                        
+                        # Reattach the translated prefix!
+                        ko_station_full = f"{ko_prefix} {ko_station}".strip()
+                            
+                        # See if we captured walking time or distance
+                        if len(station_m.groups()) >= 3 and station_m.group(3):
+                            station_info = f"🚇 {ko_station_full}에서 도보 {station_m.group(3)}분"
+                        elif len(station_m.groups()) >= 4 and station_m.group(4):
+                            station_info = f"🚇 {ko_station_full}에서 {station_m.group(4)}m"
+                        else:
+                            station_info = f"🚇 {ko_station_full}"
 
         result["reviews"] = reviews
         result["latest_review_date"] = latest_date
         result["opening_hours"] = hours
         result["payment_tags"] = payment_tags
+        result["station_info"] = station_info
 
     except Exception as e:
         print(f"    Detail error: {e}")
@@ -234,6 +404,7 @@ def scrape_tabelog_trending(region="tokyo", max_results=5):
                 "tabelog_latest_date": detail.get("latest_review_date", ""),
                 "opening_hours":       detail.get("opening_hours", ""),
                 "payment_tags":        detail.get("payment_tags", []),
+                "station_info":        detail.get("station_info", ""),
                 "region":              REGION_MAP.get(region, "도쿄"),
                 # filled by subsequent scripts:
                 "google_rating":       0.0,
@@ -248,9 +419,12 @@ def scrape_tabelog_trending(region="tokyo", max_results=5):
 
 
 def main():
+    import sys
+    region = sys.argv[1] if len(sys.argv) > 1 else "tokyo"
+    max_results = int(sys.argv[2]) if len(sys.argv) > 2 else 5
+    
     os.makedirs("/tmp/antigravity_tmp", exist_ok=True)
-    # User requested Nagoya (using aichi hub) and 5 results
-    restaurants = scrape_tabelog_trending(region="aichi", max_results=5)
+    restaurants = scrape_tabelog_trending(region=region, max_results=max_results)
     out = "/tmp/antigravity_tmp/tabelog_report.json"
     with open(out, "w", encoding="utf-8") as f:
         json.dump(restaurants, f, ensure_ascii=False, indent=2)

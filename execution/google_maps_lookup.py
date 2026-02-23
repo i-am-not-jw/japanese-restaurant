@@ -90,9 +90,14 @@ async def scrape_maps(page, restaurant_name, address=""):
                 await page.wait_for_timeout(2000)
                 rc_val2 = await page.evaluate('''() => {
                     const txt = document.body.innerText;
-                    const m = txt.match(/([0-9\.]+)\s*\(([0-9,]+)\)/);
+                    // match patterns like 3.9 ★★★★★ (1,200) or just (1,200) Google 리뷰
+                    const m = txt.match(/([0-9\.]+)\s*(?:[★\*]+)?\s*\(([0-9,]+)\)/);
                     if (m) {
                         return parseInt(m[2].replace(/,/g, ''));
+                    }
+                    const m2 = txt.match(/\(([0-9,]+)\)\s*(?:件|クチコミ|reviews)/i);
+                    if (m2) {
+                        return parseInt(m2[1].replace(/,/g, ''));
                     }
                     return 0;
                 }''')

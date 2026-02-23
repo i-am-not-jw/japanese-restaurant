@@ -6,7 +6,7 @@ Publishes restaurant data to Notion with:
   - Korean tags (location + cuisine)
   - Gallery-friendly: 지역 select, 썸네일 files property
 """
-import os, re, json, requests
+import os, re, json, requests, sys
 from datetime import datetime
 
 # ── Credentials ──────────────────────────────────────────────────────────────
@@ -52,21 +52,18 @@ def gemini_summarize(tabelog_reviews, google_reviews, restaurant_name):
         "위 리뷰들을 바탕으로 이 식당의 특징, 인기 메뉴, 분위기, "
         "장단점을 한국어로 3~4문장으로 간결하게 요약해 주세요."
     )
-    url_15 = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_KEY}"
     url_pro = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_KEY}"
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     
     try:
-        resp = requests.post(url_15, json=payload, timeout=20)
-        if resp.status_code == 200:
-            return resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
-        else:
-            print(f"    Gemini 2.0 error: {resp.status_code} {resp.reason}. Trying flash-latest...")
-            resp2 = requests.post(url_pro, json=payload, timeout=20)
-            if resp2.status_code == 200:
-                return resp2.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
-            print(f"    Gemini latest error: {resp2.status_code} {resp2.reason}")
-            return f"요약 실패 (에러 {resp.status_code})"
+        resp2 = requests.post(url_pro, json=payload, timeout=20)
+        if resp2.status_code == 200:
+            return resp2.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+        elif resp2.status_code == 429:
+            print(f"    [RATELIMIT] Gemini Flash-latest 429 Too Many Requests -> Exiting")
+            sys.exit(429)
+        print(f"    Gemini latest error: {resp2.status_code} {resp2.reason}")
+        return f"요약 실패 (에러 {resp.status_code})"
     except Exception as e:
         print(f"    Gemini API call error: {e}")
         # Fallback: plain concatenation
@@ -87,27 +84,24 @@ def translate_hours(hours_jp):
         "• 휴무일: 부정기 휴무\n\n"
         "위 예시처럼 핵심 시간과 휴무일 정보만 한눈에 들어오게 정리해 주세요."
     )
-    url_15 = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={GEMINI_KEY}"
     url_pro = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_KEY}"
     payload = {"contents": [{"parts": [{"text": prompt}]}]}
     
     try:
-        resp = requests.post(url_15, json=payload, timeout=20)
-        if resp.status_code == 200:
-            return resp.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
         resp2 = requests.post(url_pro, json=payload, timeout=20)
         if resp2.status_code == 200:
             return resp2.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+        elif resp2.status_code == 429:
+            print(f"    [RATELIMIT] Gemini Flash-latest 429 Too Many Requests (Hours) -> Exiting")
+            sys.exit(429)
+    except SystemExit:
+        raise
     except Exception as e:
         pass
     return hours_jp # Fallback to original
 
 # ── Translation tables ────────────────────────────────────────────────────────
 LOCATION_KO = {
-    "東京都": "도쿄도", "大阪府": "오사카부", "京都府": "교토부",
-    "北海道": "홋카이도", "神奈川県": "가나가와현", "愛知県": "아이치현",
-    "福岡県": "후쿠오카현", "千葉県": "치바현", "埼玉県": "사이타마현",
-    "兵庫県": "효고현",
     "千代田区": "치요다구", "中央区": "주오구", "港区": "미나토구",
     "新宿区": "신주쿠구", "文京区": "분쿄구", "台東区": "다이토구",
     "墨田区": "스미다구", "江東区": "고토구", "品川区": "시나가와구",
@@ -116,8 +110,27 @@ LOCATION_KO = {
     "豊島区": "도시마구", "北区": "기타구", "荒川区": "아라카와구",
     "板橋区": "이타바시구", "練馬区": "네리마구", "足立区": "아다치구",
     "葛飾区": "가쓰시카구", "江戸川区": "에도가와구",
-    "立川市": "다치카와시", "町田市": "마치다시",
-    "沖縄県": "오키나와현", "那覇市": "나하시", "石垣市": "이시가키시", "宮古島市": "미야코지마시",
+    "立川市": "다치카와", "町田市": "마치다",
+    "横浜市": "요코하마", "川崎市": "가와사키", "鎌倉市": "가마쿠라",
+    "大阪市": "오사카", "堺市": "사카이",
+    "京都市": "교토", 
+    "札幌市": "삿포로", "函館市": "하코다테", "小樽市": "오타루",
+    "名古屋市": "나고야",
+    "神戸市": "고베", "姫路市": "히메지",
+    "福岡市": "후쿠오카", "北九州市": "기타큐슈",
+    "さいたま市": "사이타마", "川越市": "가와고에",
+    "千葉市": "치바", "船橋市": "후나바시",
+    "那覇市": "나하", "石垣市": "이시가키", "宮古島市": "미야코지마",
+    
+    # Tier 2 Small Cities Extension
+    "広島市": "히로시마",
+    "静岡市": "시즈오카",
+    "鹿児島市": "가고시마",
+    "高松市": "다카마쓰",
+    "熊本市": "구마모토",
+    "仙台市": "센다이",
+    "長野市": "나가노",
+    "金沢市": "가나자와"
 }
 
 CUISINE_KO = {
