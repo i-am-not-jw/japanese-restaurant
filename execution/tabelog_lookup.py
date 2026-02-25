@@ -268,12 +268,34 @@ def extract_detail(url):
                     
                     # Case 4: Bus stop
                     if "バス" in s or "停留所" in s or "バス停" in s:
-                        bus_m = re.match(r"(.*?)バス", s)
-                        if bus_m:
-                            bus_name = bus_m.group(1).strip()
-                            bus_name = re.sub(r"[「」『』\[\]【】\(\)（）｢｣<>]|\s+", "", bus_name).strip()
-                            station_info = f"🚌 {bus_name} 버스 주변"
-                            continue
+                        cache_key = f"bus_{s[:50]}"
+                        if cache_key in STATION_CACHE:
+                            station_info = f"🚌 {STATION_CACHE[cache_key]}"
+                        elif GEMINI_KEY:
+                            print(f"    [AI] Translating full bus access info: {s}")
+                            prompt = f"""일본 음식점의 교통/대중교통 안내 구문 '{s}'을(를) 자연스러운 한국어로 단답형으로 번역하세요. 
+규칙: 
+1. 식당 주인이 자유롭게 적은 문장이므로 버스 정류장, 버스 회사/노선명, 랜드마크 등이 섞여 있을 수 있습니다. 문맥을 파악해서 자연스럽게 번역하세요.
+2. 단순히 '버스' 문자가 있다고 해서 무조건 끝에 '정류장'을 붙이지 마세요. (예: 버스 회사 이름이면 그냥 표기)
+3. '차로 OO분(車でOO分)'이나 '택시로 OO분' 같은 소요 시간 정보는 무조건 삭제하고 출력하세요.
+4. 한자 뜻풀이가 아닌 고유명사 발음대로 표기하세요. (예: 北鉄金沢バス -> 호쿠테쓰 가나자와 버스).
+5. 부연설명 없이 깔끔하게 한 줄로 최적화된 결과만 출력하세요."""
+                            url_pro = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_KEY}"
+                            try:
+                                resp2 = requests.post(url_pro, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=30)
+                                if resp2.status_code == 200:
+                                    ai_bus = resp2.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+                                    if ai_bus:
+                                        STATION_CACHE[cache_key] = ai_bus
+                                        station_info = f"🚌 {ai_bus}"
+                                        print(f"      -> Bus Translated: {ai_bus}")
+                                else:
+                                    station_info = f"🚌 {s}"
+                            except Exception:
+                                station_info = f"🚌 {s}"
+                        else:
+                            station_info = f"🚌 {s}"
+                        continue
                             
                     # Extract station name and distance metrics anywhere in the text
                     # Look for [StationName]駅 から [xx]m or 徒歩[xx]分

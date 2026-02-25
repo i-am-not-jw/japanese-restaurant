@@ -11,13 +11,13 @@ url = f"https://api.notion.com/v1/databases/{DATABASE_ID}"
 
 payload = {
     "properties": {
-        "역 정보": {
+        "교통": {
             "rich_text": {}
         }
     }
 }
 patch_res = requests.patch(url, headers=headers, json=payload)
 if patch_res.status_code == 200:
-    print("Column '역 정보' successfully added!")
+    print("Column '교통' successfully added!")
 else:
     print(patch_res.json())

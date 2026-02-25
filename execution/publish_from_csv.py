@@ -78,7 +78,7 @@ def main():
             "장소": {
                 "rich_text": [{"text": {"content": row["Address"][:2000]}}]
             },
-            "역 정보": {
+            "교통": {
                 "rich_text": [{"text": {"content": row["Station_Info"][:2000]}}]
             },
             "영업 시간": {
