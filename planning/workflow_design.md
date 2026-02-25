@@ -28,7 +28,10 @@ Once a restaurant name is identified:
     - **Demographics**: Check if reviews are mostly in Japanese.
 
 ## 3. Weekly Automation (Scheduling)
-On macOS, we will use `launchd` to trigger the orchestrator every Monday at 00:00.
+GitHub Actions를 사용하며 두 워크플로우 모두 수동 트리거로만 실행된다.
+
+- **collect workflow** (`.github/workflows/collect.yml`): 수집 파이프라인 실행 → `data/staged_restaurants.csv` 커밋
+- **publish workflow** (`.github/workflows/publish.yml`): 수동 트리거 — human review 완료 후 실행하여 Notion에 업로드
 
 ## 4. Dependencies
 - `python3`

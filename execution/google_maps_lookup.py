@@ -7,7 +7,7 @@ import os, re, json, time, asyncio
 from urllib.parse import quote as requests_quote
 from playwright.async_api import async_playwright
 
-INPUT_PATH  = "/tmp/antigravity_tmp/tabelog_report.json"
+INPUT_PATH  = os.path.expanduser("~/.local/share/antigravity/tabelog_report.json")
 OUTPUT_PATH = INPUT_PATH
 
 

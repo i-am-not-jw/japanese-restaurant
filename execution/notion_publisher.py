@@ -341,7 +341,7 @@ def main():
         "Content-Type": "application/json",
         "Notion-Version": "2022-06-28",
     }
-    path = "/tmp/antigravity_tmp/tabelog_report.json"
+    path = os.path.expanduser("~/.local/share/antigravity/tabelog_report.json")
     if not os.path.exists(path):
         print("No data found. Run tabelog_lookup.py first.")
         return

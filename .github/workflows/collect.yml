@@ -1,0 +1,47 @@
+name: Collect Restaurants
+
+on:
+  workflow_dispatch:  # 수동 실행만
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    env:
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+      NOTION_JAPAN_RESTAURANT_DB_ID: ${{ secrets.NOTION_JAPAN_RESTAURANT_DB_ID }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Install Playwright browsers
+        run: playwright install chromium --with-deps
+
+      - name: Run collection pipeline
+        run: python3 execution/daily_orchestrator.py
+
+      - name: Copy staged CSV to data folder
+        run: |
+          mkdir -p data
+          cp ~/.local/share/antigravity/staged_restaurants.csv data/staged_restaurants.csv
+
+      - name: Commit staged restaurants for human review
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/staged_restaurants.csv
+          git diff --staged --quiet || git commit -m "chore: update staged restaurants $(date -u +'%Y-%m-%d') [skip ci]"
+          git push

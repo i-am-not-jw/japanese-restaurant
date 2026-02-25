@@ -1,7 +1,7 @@
 """
 export_to_csv.py
-Reads /tmp/antigravity_tmp/tabelog_report.json, processes the AI summarization
-and translation, and appends the final clean data to .tmp/staged_restaurants.csv 
+Reads ~/.local/share/antigravity/tabelog_report.json, processes the AI summarization
+and translation, and appends the final clean data to staged_restaurants.csv
 for human review.
 """
 import sys, os, json, csv
@@ -11,8 +11,9 @@ from datetime import datetime
 sys.path.append(os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
 from execution.notion_publisher import gemini_summarize, translate_hours, build_tags, safe_number
 
-CSV_PATH = "/tmp/antigravity_tmp/staged_restaurants.csv"
-JSON_PATH = "/tmp/antigravity_tmp/tabelog_report.json"
+_DATA_DIR = os.path.expanduser("~/.local/share/antigravity")
+CSV_PATH = os.path.join(_DATA_DIR, "staged_restaurants.csv")
+JSON_PATH = os.path.join(_DATA_DIR, "tabelog_report.json")
 
 HEADERS = [
     "Target_City_Region",

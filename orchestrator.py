@@ -36,7 +36,7 @@ def generate_markdown_report(data):
 def main():
     base_dir = os.getcwd()
     execution_dir = os.path.join(base_dir, "execution")
-    tmp_dir = "/tmp/antigravity_tmp"
+    tmp_dir = os.path.expanduser("~/.local/share/antigravity")
     os.makedirs(tmp_dir, exist_ok=True)
     
     # 1. SNS Scanner

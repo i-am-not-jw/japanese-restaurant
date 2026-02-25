@@ -86,6 +86,8 @@ def get_korean_station_name(japanese_station_name):
                     pure = ko_title.replace("역", "")
                     STATION_CACHE[raw_name] = pure
                     return ko_title
+    except requests.exceptions.Timeout:
+        print(f"    [TIMEOUT] Wikipedia API timeout for {search_term} — AI fallback 진행")
     except Exception as e:
         print(f"    [WARN] Wikipedia API error for {search_term}: {e}")
         
@@ -111,6 +113,20 @@ def get_korean_station_name(japanese_station_name):
             elif resp2.status_code == 429:
                 print(f"    [RATELIMIT] Gemini Flash-latest 429 Too Many Requests -> Exiting")
                 sys.exit(429)
+        except requests.exceptions.Timeout:
+            print(f"      -> AI Rescue Timeout — 재시도 중...")
+            try:
+                resp2 = requests.post(url_pro, json=payload, timeout=10)
+                if resp2.status_code == 200:
+                    ai_pure_name = resp2.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+                    ai_pure_name = ai_pure_name.replace("역", "").strip()
+                    if ai_pure_name:
+                        STATION_CACHE[raw_name] = ai_pure_name
+                        print(f"      -> AI Translated (retry): {ai_pure_name}")
+                        return f"{ai_pure_name}역"
+            except Exception:
+                pass
+            print(f"      -> AI Rescue 최종 실패 — 원본 유지: {raw_name}")
         except SystemExit:
             raise
         except Exception as e:
@@ -185,6 +201,9 @@ def extract_detail(url):
             # Filter out pickup/owner items
             review_items = [i for i in all_items
                             if "rstdtl-rvw-pickup" not in " ".join(i.get("class", []))][:5]
+        except requests.exceptions.Timeout:
+            print(f"    [TIMEOUT] Review fetch timeout — 리뷰 없이 진행")
+            review_items = []
         except Exception as e:
             print(f"    Review fetch error: {e}")
             review_items = []
@@ -291,6 +310,23 @@ def extract_detail(url):
                                         print(f"      -> Bus Translated: {ai_bus}")
                                 else:
                                     station_info = f"🚌 {s}"
+                            except requests.exceptions.Timeout:
+                                print(f"      -> Bus Translation Timeout — 재시도 중...")
+                                try:
+                                    resp2 = requests.post(url_pro, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=30)
+                                    if resp2.status_code == 200:
+                                        ai_bus = resp2.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
+                                        if ai_bus:
+                                            STATION_CACHE[cache_key] = ai_bus
+                                            station_info = f"🚌 {ai_bus}"
+                                            print(f"      -> Bus Translated (retry): {ai_bus}")
+                                        else:
+                                            station_info = f"🚌 {s}"
+                                    else:
+                                        station_info = f"🚌 {s}"
+                                except Exception:
+                                    print(f"      -> Bus Translation 최종 실패 — 원본 유지")
+                                    station_info = f"🚌 {s}"
                             except Exception:
                                 station_info = f"🚌 {s}"
                         else:
@@ -343,6 +379,8 @@ def extract_detail(url):
                                             STATION_CACHE[cache_key] = ai_prefix
                                             ko_prefix = ai_prefix
                                             print(f"      -> Prefix Translated: {ai_prefix}")
+                                except requests.exceptions.Timeout:
+                                    print(f"      -> Rail Line Translation Timeout — 원본 유지: {ko_prefix}")
                                 except Exception as e:
                                     pass
 
@@ -435,6 +473,9 @@ def scrape_tabelog_trending(region="tokyo", max_results=5):
                 "google_maps_url":     "",
             })
         return results
+    except requests.exceptions.Timeout:
+        print(f"[TIMEOUT] Tabelog trending page timeout [{region}] — 빈 결과 반환")
+        return []
     except Exception as e:
         print(f"Tabelog error: {e}")
         return []
@@ -445,9 +486,10 @@ def main():
     region = sys.argv[1] if len(sys.argv) > 1 else "tokyo"
     max_results = int(sys.argv[2]) if len(sys.argv) > 2 else 5
     
-    os.makedirs("/tmp/antigravity_tmp", exist_ok=True)
+    data_dir = os.path.expanduser("~/.local/share/antigravity")
+    os.makedirs(data_dir, exist_ok=True)
     restaurants = scrape_tabelog_trending(region=region, max_results=max_results)
-    out = "/tmp/antigravity_tmp/tabelog_report.json"
+    out = os.path.join(data_dir, "tabelog_report.json")
     with open(out, "w", encoding="utf-8") as f:
         json.dump(restaurants, f, ensure_ascii=False, indent=2)
     print(f"\nSaved {len(restaurants)} restaurants → {out}")

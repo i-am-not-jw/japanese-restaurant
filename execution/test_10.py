@@ -12,7 +12,7 @@ TIER_2_CITIES = [
 ALL_CITIES = TARGET_CITIES + TIER_2_CITIES
 
 CITIES = random.sample(ALL_CITIES, 10)
-CSV_PATH = "/tmp/antigravity_tmp/staged_restaurants.csv"
+CSV_PATH = os.path.expanduser("~/.local/share/antigravity/staged_restaurants.csv")
 
 # Clear staging area
 if os.path.exists(CSV_PATH):

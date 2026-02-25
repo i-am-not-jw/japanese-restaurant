@@ -1,0 +1,34 @@
+name: Publish to Notion
+
+on:
+  workflow_dispatch:  # 수동 실행만 허용 (human review 후)
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    env:
+      NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+      NOTION_JAPAN_RESTAURANT_DB_ID: ${{ secrets.NOTION_JAPAN_RESTAURANT_DB_ID }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Restore staged CSV for publishing
+        run: |
+          mkdir -p ~/.local/share/antigravity
+          cp data/staged_restaurants.csv ~/.local/share/antigravity/staged_restaurants.csv
+
+      - name: Publish to Notion
+        run: python3 execution/publish_from_csv.py

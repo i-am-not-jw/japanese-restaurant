@@ -97,7 +97,7 @@ def find_sns_posts(restaurant_name):
 
 
 def main():
-    input_path = "/tmp/antigravity_tmp/tabelog_report.json"
+    input_path = os.path.expanduser("~/.local/share/antigravity/tabelog_report.json")
     if not os.path.exists(input_path):
         print("tabelog_report.json not found. Run tabelog_lookup.py first.")
         return
