@@ -11,7 +11,7 @@ from datetime import datetime
 sys.path.append(os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
 from execution.notion_publisher import gemini_summarize, translate_hours, build_tags, safe_number
 
-_DATA_DIR = "/tmp/japanese_restaurant_data"
+_DATA_DIR = os.path.expanduser("~/.local/share/antigravity")
 CSV_PATH = os.path.join(_DATA_DIR, "staged_restaurants.csv")
 JSON_PATH = os.path.join(_DATA_DIR, "tabelog_report.json")
 

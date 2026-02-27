@@ -144,15 +144,10 @@ def extract_detail(url):
         resp = requests.get(url, headers=HEADERS, timeout=12)
         soup = BeautifulSoup(resp.text, "html.parser")
 
-        # Thumbnail — 1순위: 상단 슬라이더 대표 이미지
-        slider_img = soup.select_one(".p-main-photos__slider-image")
-        if slider_img and str(slider_img.get("src", "")).startswith("http"):
-            result["thumbnail"] = slider_img["src"]
-        else:
-            # 2순위: og:image fallback
-            og = soup.find("meta", property="og:image")
-            if og and str(og.get("content", "")).startswith("http"):
-                result["thumbnail"] = og["content"]
+        # Thumbnail
+        og = soup.find("meta", property="og:image")
+        if og and str(og.get("content", "")).startswith("http"):
+            result["thumbnail"] = og["content"]
 
         # Address
         addr_elem = soup.select_one("[class*=address]")
@@ -162,18 +157,14 @@ def extract_detail(url):
             result["address"] = raw[:150]
 
         # Total review count from the detail page
-        # .c-page-count contains text like "1/4ページ 77件" — extract NN件
-        count_elem = soup.select_one(".c-page-count")
+        count_elem = soup.select_one(".c-page-count__num")
         if count_elem:
-            count_text = count_elem.get_text(strip=True)
-            m = re.search(r"(\d+)件", count_text)
-            if m:
-                try:
-                    result["review_count"] = int(m.group(1))
-                except:
-                    pass
+            try:
+                result["review_count"] = int(re.sub(r"[^\d]", "", count_elem.get_text()))
+            except:
+                pass
         if not result["review_count"]:
-            # Fallback: scan broader page text for NN件
+            # Try pattern like "77件" in the page
             m = re.search(r"(\d+)件", soup.get_text())
             if m:
                 result["review_count"] = int(m.group(1))
@@ -220,24 +211,17 @@ def extract_detail(url):
         reviews = []
         latest_date = ""
         for item in review_items:
-            # Date extraction: try direct selector first, fallback to full-text regex
+            # Date extraction: search in full text of the item
             date_str = ""
-            date_elem = item.select_one(".rvw-item__date span") or item.select_one(".rvw-item__date")
-            if date_elem:
-                date_text = date_elem.get_text(strip=True)
-                m = re.search(r"(20\d{2})/(\d{1,2})", date_text)
-                if not m:
-                    m = re.search(r"(20\d{2})年(\d{1,2})月", date_text)
-                if m:
-                    date_str = f"{m.group(1)}-{m.group(2).zfill(2)}"
-            if not date_str:
-                # Fallback: search in full text of the item
-                item_text = item.get_text(separator=" ", strip=True)
-                m = re.search(r"(20\d{2})/(\d{1,2})[^0-9]*訪問", item_text)
-                if not m:
-                    m = re.search(r"(20\d{2})年(\d{1,2})月", item_text)
-                if m:
-                    date_str = f"{m.group(1)}-{m.group(2).zfill(2)}"
+            item_text = item.get_text(separator=" ", strip=True)
+            # Look for 20XX/YY or 20XX年YY月 pattern near "訪問"
+            # Try specific "YYYY/MM訪問" first
+            m = re.search(r"(20\d{2})/(\d{1,2})[^0-9]*訪問", item_text)
+            if not m:
+                m = re.search(r"(20\d{2})年(\d{1,2})月", item_text)
+            
+            if m:
+                date_str = f"{m.group(1)}-{m.group(2).zfill(2)}"
 
             if date_str:
                 if not latest_date or date_str > latest_date:
@@ -362,9 +346,8 @@ def extract_detail(url):
                         prefix = ""
                         raw_jp = raw_jp_full
                         
-                        # 1. Extract and preserve Line names (more robust)
-                        # Handles patterns like 札幌市営東豊線, 地下鉄七隈線, etc.
-                        line_match = re.search(r"^([^\s駅]*(?:線|地下鉄|市営))\s*(.*)", raw_jp)
+                        # 1. Extract and preserve Line names
+                        line_match = re.search(r"^([^線]+線)\s*(.*)", raw_jp)
                         if line_match:
                             prefix += line_match.group(1) + " "
                             raw_jp = line_match.group(2)
@@ -407,7 +390,7 @@ def extract_detail(url):
                         
                         # Reattach the translated prefix!
                         ko_station_full = f"{ko_prefix} {ko_station}".strip()
-                        
+                            
                         # See if we captured walking time or distance
                         if len(station_m.groups()) >= 3 and station_m.group(3):
                             station_info = f"🚇 {ko_station_full}에서 도보 {station_m.group(3)}분"
@@ -415,23 +398,6 @@ def extract_detail(url):
                             station_info = f"🚇 {ko_station_full}에서 {station_m.group(4)}m"
                         else:
                             station_info = f"🚇 {ko_station_full}"
-
-                    # FINAL KANJI SWEEP: If station_info still has Kanji/Japanese, use Gemini to clean it up entirely
-                    # Kanji range: \u4e00-\u9faf, Hiragana: \u3040-\u309f, Katakana: \u30a0-\u30ff
-                    if station_info and re.search(r"[\u4e00-\u9faf\u3040-\u309f\u30a0-\u30ff]", station_info):
-                        if GEMINI_KEY:
-                            print(f"    [AI SWEEP] Cleaning remaining Japanese in station info: {station_info}")
-                            prompt = f"일본어와 한자가 섞인 지하철 역 정보 '{station_info}'을(를) 완벽한 한국어(한글)로 변환하세요. (예: 🚇 札幌市営東豊線 삿포로역 -> 🚇 삿포로 시영 토호선 삿포로역). '🚇' 같은 아이콘은 그대로 유지하고, 부연 설명 없이 결과만 한 줄로 출력하세요."
-                            url_pro = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_KEY}"
-                            try:
-                                resp2 = requests.post(url_pro, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=10)
-                                if resp2.status_code == 200:
-                                    clean_info = resp2.json()["candidates"][0]["content"]["parts"][0]["text"].strip()
-                                    if clean_info:
-                                        print(f"      -> Sweep Result: {clean_info}")
-                                        station_info = clean_info
-                            except Exception:
-                                pass
 
         result["reviews"] = reviews
         result["latest_review_date"] = latest_date
@@ -520,7 +486,7 @@ def main():
     region = sys.argv[1] if len(sys.argv) > 1 else "tokyo"
     max_results = int(sys.argv[2]) if len(sys.argv) > 2 else 5
     
-    data_dir = "/tmp/japanese_restaurant_data"
+    data_dir = os.path.expanduser("~/.local/share/antigravity")
     os.makedirs(data_dir, exist_ok=True)
     restaurants = scrape_tabelog_trending(region=region, max_results=max_results)
     out = os.path.join(data_dir, "tabelog_report.json")

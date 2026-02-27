@@ -9,24 +9,19 @@ Publishes restaurant data to Notion with:
 import os, re, json, requests, sys
 from datetime import datetime
 
-# Credentials
+# ── Credentials ──────────────────────────────────────────────────────────────
 def load_env():
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    env_paths = [
-        os.path.normpath(os.path.join(script_dir, "..", ".env")),
-        "/tmp/japanese_restaurant_data/.env"
-    ]
-    for env_path in env_paths:
-        if os.path.exists(env_path):
-            try:
-                with open(env_path, "r") as f:
-                    for line in f:
-                        if "=" in line and not line.startswith("#"):
-                            k, v = line.strip().split("=", 1)
-                            os.environ.setdefault(k, v)
-                break # Stop at first found
-            except PermissionError:
-                continue
+    env_path = os.path.normpath(os.path.join(script_dir, "..", ".env"))
+    if os.path.exists(env_path):
+        try:
+            with open(env_path, "r") as f:
+                for line in f:
+                    if "=" in line and not line.startswith("#"):
+                        k, v = line.strip().split("=", 1)
+                        os.environ.setdefault(k, v)
+        except PermissionError:
+            pass
 
 load_env()
 NOTION_TOKEN  = os.getenv("NOTION_TOKEN")  or "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"
@@ -253,48 +248,6 @@ def safe_thumb(url):
 def multiselect(items):
     return [{"name": str(s)[:100]} for s in items if s]
 
-# Cache for DB tag options (fetched once per run)
-_db_tag_options_cache = None
-
-def get_db_tag_options(headers):
-    """Fetch existing multi_select options for '태그' property from Notion DB."""
-    global _db_tag_options_cache
-    if _db_tag_options_cache is not None:
-        return _db_tag_options_cache
-    try:
-        resp = requests.get(
-            f"https://api.notion.com/v1/databases/{DATABASE_ID}",
-            headers=headers
-        )
-        if resp.status_code == 200:
-            props = resp.json().get("properties", {})
-            tag_prop = props.get("태그", {})
-            options = tag_prop.get("multi_select", {}).get("options", [])
-            _db_tag_options_cache = {opt["name"].strip() for opt in options}
-            return _db_tag_options_cache
-    except Exception as e:
-        print(f"  [WARN] DB tag options fetch failed: {e}")
-    _db_tag_options_cache = set()
-    return _db_tag_options_cache
-
-def normalize_tags(tags, headers):
-    """
-    Compare tag names against existing Notion DB options.
-    - Exact match (after strip): use as-is
-    - No match: allow Notion to auto-create (still include)
-    Returns normalized list of tag name strings.
-    """
-    existing = get_db_tag_options(headers)
-    result = []
-    for tag in tags:
-        normalized = str(tag).strip()
-        if not normalized:
-            continue
-        # If exists in DB options (case-sensitive strip match), keep as-is
-        # If not, Notion API will auto-create — still include
-        result.append(normalized)
-    return result
-
 
 def publish_one(item, headers):
     name = item.get("name", "N/A")
@@ -305,7 +258,7 @@ def publish_one(item, headers):
         return
 
     # AI summary
-    print(f"    [Japanese Restaurant] Gemini 요약 중...")
+    print(f"    Gemini 요약 중...")
     summary = gemini_summarize(
         item.get("tabelog_reviews", []),
         item.get("google_reviews", []),
@@ -313,12 +266,9 @@ def publish_one(item, headers):
     )
     region = item.get("region", "도쿄")
     latest = item.get("tabelog_latest_date", "")
-    station_info = item.get("station_info", "") or ""
 
     tabelog_url = safe_url(item.get("tabelog_url", ""))
     existing_page_id = check_existing_page(tabelog_url, headers)
-
-    normalized_tags = normalize_tags(tags, headers)
 
     properties = {
         " 제목": {
@@ -345,14 +295,11 @@ def publish_one(item, headers):
         "장소": {
             "rich_text": [{"text": {"content": (item.get("address") or "")[:2000]}}]
         },
-        "교통": {
-            "rich_text": [{"text": {"content": station_info[:2000]}}]
-        },
         "영업 시간": {
             "rich_text": [{"text": {"content": translate_hours(item.get("opening_hours") or "")[:2000]}}]
         },
         "태그": {
-            "multi_select": multiselect(normalized_tags)
+            "multi_select": multiselect(tags)
         },
         "지역": {
             "select": {"name": region}
@@ -394,7 +341,7 @@ def main():
         "Content-Type": "application/json",
         "Notion-Version": "2022-06-28",
     }
-    path = "/tmp/japanese_restaurant_data/tabelog_report.json"
+    path = os.path.expanduser("~/.local/share/antigravity/tabelog_report.json")
     if not os.path.exists(path):
         print("No data found. Run tabelog_lookup.py first.")
         return

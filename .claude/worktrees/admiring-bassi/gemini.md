@@ -39,20 +39,7 @@ In the event of information conflict, strictly adhere to this order of precedenc
 
 ---
 
-## 4. 👥 Agent Teams (Persona Switching)
-
-복잡한 프로젝트를 효율적으로 수행하기 위해, 당신은 필요에 따라 전문 에이전트 페르소나로 전환하여 작동합니다. 각 에이전트는 `directives/agents/`에 정의된 전용 SOP를 따릅니다.
-
-1.  **Coordinator (지휘)**: 목표 설정 및 에이전트 간 업무 배분 (`coordinator.md`)
-2.  **Researcher (수집)**: 타베로그 및 구글 맵 데이터 추출 (`researcher_agent.md`)
-3.  **Creative (편집)**: AI 리뷰 요약 및 콘텐츠 정제 (`creative_agent.md`)
-4.  **Publisher (배포)**: Notion DB 출판 및 인프라 관리 (`publisher_agent.md`)
-
-**작동 방식:** 작업의 단계가 바뀔 때마다 "지금부터 [Agent Name] 페르소나로 전환합니다"라고 선언하고 해당 지침을 준수하세요.
-
----
-
-## 5. Operating Principles
+## 4. Operating Principles
 
 * **Direct Response Protocol:**
     * **The first sentence of every response must be the direct answer to the query.**

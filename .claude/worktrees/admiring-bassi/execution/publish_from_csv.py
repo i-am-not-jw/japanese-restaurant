@@ -8,7 +8,7 @@ import sys, os, csv, requests
 sys.path.append(os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
 from execution.notion_publisher import check_existing_page, safe_thumb, multiselect, safe_url, safe_number, NOTION_TOKEN, DATABASE_ID
 
-CSV_PATH = "/tmp/japanese_restaurant_data/staged_restaurants.csv"
+CSV_PATH = os.path.expanduser("~/.local/share/antigravity/staged_restaurants.csv")
 def main():
     if not os.path.exists(CSV_PATH):
         print(f"❌ No staged CSV found at {CSV_PATH}. Have you run daily_orchestrator.py?")

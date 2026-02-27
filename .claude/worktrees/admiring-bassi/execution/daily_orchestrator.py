@@ -45,7 +45,7 @@ def main():
 
     # Wipe existing staging CSV before a full fresh run
     # Note: Using absolute path from current file directory to avoid PermissionError
-    staging_file = "/tmp/japanese_restaurant_data/staged_restaurants.csv"
+    staging_file = os.path.expanduser("~/.local/share/antigravity/staged_restaurants.csv")
     if os.path.exists(staging_file):
         os.remove(staging_file)
         print(f"  [Orchestrator] Wiped existing staging file: {staging_file}")

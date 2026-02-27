@@ -49,7 +49,7 @@
 ## 📝 3. 데이터 검수 및 출판 (Data Staging & Upsert)
 
 ### Step 1. Staging (사전 검수 도입)
-데이터 오염을 막기 위해 추출된 1차 무결점 데이터를 곧장 출판하지 않고, `/tmp/japanese_restaurant_data/staged_restaurants.csv`와 같은 **임시 CSV** 형태로 저장시킵니다. 사용자는 데이터를 훑어보고(Review), 승인하는 역할만을 수행합니다 (`export_to_csv.py`).
+데이터 오염을 막기 위해 추출된 1차 무결점 데이터를 곧장 출판하지 않고, `/tmp/antigravity_tmp/staged_restaurants.csv`와 같은 **임시 CSV** 형태로 저장시킵니다. 사용자는 데이터를 훑어보고(Review), 승인하는 역할만을 수행합니다 (`export_to_csv.py`).
 
 ### Step 2. Upsert 기반 스마트 업로드 (`publish_from_csv.py`, `notion_publisher.py`)
 사용자의 업로드(Publish) 허가가 떨어지면 Notion API를 호출합니다.

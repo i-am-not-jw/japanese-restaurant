@@ -7,7 +7,7 @@ import os, re, json, time, asyncio
 from urllib.parse import quote as requests_quote
 from playwright.async_api import async_playwright
 
-INPUT_PATH  = "/tmp/japanese_restaurant_data/tabelog_report.json"
+INPUT_PATH  = os.path.expanduser("~/.local/share/antigravity/tabelog_report.json")
 OUTPUT_PATH = INPUT_PATH
 
 
@@ -183,7 +183,7 @@ async def run():
 
     # Redirect Playwright temp files to /tmp to avoid Desktop permission errors
     os.environ["TMPDIR"] = "/tmp"
-    pw_tmp = "/tmp/japanese_restaurant_playwright"
+    pw_tmp = "/tmp/antigravity_playwright"
     os.makedirs(pw_tmp, exist_ok=True)
 
     async with async_playwright() as p:
