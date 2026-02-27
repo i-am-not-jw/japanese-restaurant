@@ -157,6 +157,15 @@ CUISINE_KO = {
     "レストラン": "레스토랑", "スイーツ": "디저트", "パン": "베이커리"
 }
 
+# Tag Category to Notion Color mapping
+# Options: default, gray, brown, orange, yellow, green, blue, purple, pink, red
+TAG_CATEGORY_COLORS = {
+    "badge": "orange",
+    "cuisine": "blue",
+    "location": "brown",
+    "payment": "gray"
+}
+
 def build_tags(restaurant):
     rating_tags = []
     cuisine_tags = []
@@ -187,7 +196,6 @@ def build_tags(restaurant):
     google_review_count = restaurant.get("google_review_count", 0)
     tabelog_latest_date = restaurant.get("tabelog_latest_date", "")
 
-    from datetime import datetime
     has_recent_review = False
     try:
         if tabelog_latest_date:
@@ -270,29 +278,74 @@ def get_db_tag_options(headers):
             props = resp.json().get("properties", {})
             tag_prop = props.get("태그", {})
             options = tag_prop.get("multi_select", {}).get("options", [])
-            _db_tag_options_cache = {opt["name"].strip() for opt in options}
+            _db_tag_options_cache = {opt["name"]: opt["color"] for opt in options}
             return _db_tag_options_cache
     except Exception as e:
         print(f"  [WARN] DB tag options fetch failed: {e}")
-    _db_tag_options_cache = set()
+    _db_tag_options_cache = {}
     return _db_tag_options_cache
+
+def sync_notion_db_tag_colors(headers):
+    """
+    Updates the Notion Database property schema to ensure tags have consistent colors.
+    """
+    print("  [NOTION] Syncing tag colors...")
+    
+    # We need to collect tags and pre-define colors. 
+    # Notion limit is 100 options total.
+    new_options = []
+    
+    # 1. Badges (Highest Priority)
+    for tag in ["🦄 0.1% 레전드 맛집", "🏆 현지인 인증맛집", "💡 숨겨진 맛집"]:
+        new_options.append({"name": tag, "color": TAG_CATEGORY_COLORS["badge"]})
+    
+    # 2. Common Cuisines (Top 40 to stay safe)
+    CUISINE_KEYS = list(CUISINE_KO.values())[:40]
+    for ko in CUISINE_KEYS:
+        new_options.append({"name": ko, "color": TAG_CATEGORY_COLORS["cuisine"]})
+    
+    # 3. Locations (Top 30 to stay safe)
+    LOCATION_KEYS = list(LOCATION_KO.values())[:30]
+    for ko in LOCATION_KEYS:
+        new_options.append({"name": ko, "color": TAG_CATEGORY_COLORS["location"]})
+        
+    # 4. Payment
+    for pt in ["카드 가능", "현금만", "간편결제 가능"]:
+        new_options.append({"name": pt, "color": TAG_CATEGORY_COLORS["payment"]})
+
+    print(f"    -> Syncing {len(new_options)} priority tags...")
+    
+    # Prepare update payload
+    payload = {
+        "properties": {
+            "태그": {
+                "multi_select": {
+                    "options": new_options
+                }
+            }
+        }
+    }
+    
+    resp = requests.patch(f"https://api.notion.com/v1/databases/{DATABASE_ID}", headers=headers, json=payload)
+    if resp.status_code == 200:
+        print("    ✅ Tag colors synced successfully.")
+    else:
+        print(f"    ❌ Tag color sync failed: {resp.status_code} {resp.text}")
 
 def normalize_tags(tags, headers):
     """
     Compare tag names against existing Notion DB options.
-    - Exact match (after strip): use as-is
-    - No match: allow Notion to auto-create (still include)
-    Returns normalized list of tag name strings.
+    tags: can be list of strings or list of (string, category)
     """
-    existing = get_db_tag_options(headers)
     result = []
     for tag in tags:
-        normalized = str(tag).strip()
-        if not normalized:
-            continue
-        # If exists in DB options (case-sensitive strip match), keep as-is
-        # If not, Notion API will auto-create — still include
-        result.append(normalized)
+        if isinstance(tag, tuple):
+            name = tag[0].strip()
+        else:
+            name = str(tag).strip()
+        
+        if name:
+            result.append(name)
     return result
 
 
@@ -394,6 +447,12 @@ def main():
         "Content-Type": "application/json",
         "Notion-Version": "2022-06-28",
     }
+    
+    # Optional sync
+    if "--sync-tags" in sys.argv:
+        sync_notion_db_tag_colors(headers)
+        return
+
     path = "/tmp/japanese_restaurant_data/tabelog_report.json"
     if not os.path.exists(path):
         print("No data found. Run tabelog_lookup.py first.")

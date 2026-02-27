@@ -80,7 +80,17 @@ def main():
         time.sleep(15)
         
     print("\n🎉 Daily Orchestrator extraction finished.")
-    print("▶️ Please review `.tmp/staged_restaurants.csv` and then run `python3 execution/publish_from_csv.py` to upload to Notion.")
+    print("=====================================================")
+    print("🚀 Attempting automatic upload to Notion...")
+    
+    # Call publish_from_csv.py with --auto
+    publish_script = os.path.join(os.path.dirname(__file__), "publish_from_csv.py")
+    res = os.system(f"python3 {publish_script} --auto")
+    
+    if res == 0:
+        print("\n🎉 Automatic upload completed successfully!")
+    else:
+        print("\n⚠️ Automatic upload skipped. Please check the CSV at .tmp/staged_restaurants.csv and run publish_from_csv.py manually.")
 
 if __name__ == "__main__":
     main()

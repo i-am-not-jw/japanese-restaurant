@@ -70,7 +70,7 @@ GEMINI_API_KEY=AIzaSy...
 ```bash
 python3 execution/daily_orchestrator.py
 ```
-- 스크립트가 각 도시별로 크롤링을 진행하고, 최종 검증 데이터 묶음을 `~/.local/share/antigravity/staged_restaurants.csv` 에 떨굽니다.
+- 스크립트가 각 도시별로 크롤링을 진행하고, 최종 검증 데이터 묶음을 `/tmp/japanese_restaurant_data/staged_restaurants.csv` 에 떨굽니다.
 
 **Step 2: 리뷰 검수 후 Notion 업로드**
 - 에디터 프로그램 등으로 `staged_restaurants.csv`의 요약이나 태그가 잘 들어갔는지 가볍게 훑어봅니다.

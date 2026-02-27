@@ -3,12 +3,23 @@ publish_from_csv.py
 Reads the human-reviewed .tmp/staged_restaurants.csv and publishes the data
 to the Notion database via Upsert.
 """
-import sys, os, csv, requests
+import sys, os, csv, requests, re
 
 sys.path.append(os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
 from execution.notion_publisher import check_existing_page, safe_thumb, multiselect, safe_url, safe_number, NOTION_TOKEN, DATABASE_ID
 
 CSV_PATH = "/tmp/japanese_restaurant_data/staged_restaurants.csv"
+
+def contains_japanese(text):
+    """
+    Checks if the text contains any Japanese characters (Hiragana, Katakana, or Kanji).
+    """
+    if not text:
+        return False
+    # Hiragana: \u3040-\u309f, Katakana: \u30a0-\u30ff, Kanji: \u4e00-\u9faf
+    pattern = re.compile(r'[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf]')
+    return bool(pattern.search(text))
+
 def main():
     if not os.path.exists(CSV_PATH):
         print(f"❌ No staged CSV found at {CSV_PATH}. Have you run daily_orchestrator.py?")
@@ -28,9 +39,36 @@ def main():
         print("CSV is empty.")
         sys.exit(0)
 
+    auto_mode = "--auto" in sys.argv
+    
     print("=====================================================")
     print(f"▶️ Starting Notion Publisher (Publishing {len(rows)} apps from CSV)")
+    if auto_mode:
+        print("🤖 [AUTO MODE] Scanning for Japanese text...")
     print("=====================================================\n")
+
+    if auto_mode:
+        failing_rows = []
+        # Columns that MUST NOT contain Japanese
+        check_cols = ["Target_City_Region", "Generated_Tags", "AI_Review_Summary", "AI_Opening_Hours", "Station_Info"]
+        
+        for i, row in enumerate(rows):
+            found_jp = []
+            for col in check_cols:
+                if contains_japanese(row.get(col, "")):
+                    found_jp.append(col)
+            
+            if found_jp:
+                failing_rows.append((i + 1, row["Restaurant_Name"], found_jp))
+        
+        if failing_rows:
+            print("❌ [AUTO MODE FAILED] Japanese characters detected in cleaned columns:")
+            for row_num, name, cols in failing_rows:
+                print(f"  - Row {row_num} ({name}): Japanese found in {', '.join(cols)}")
+            print("\n⚠️ Please review the CSV and fix the translations before uploading.")
+            sys.exit(1)
+        else:
+            print("✅ [AUTO MODE PASSED] No Japanese detected in cleaned columns. Proceeding with upload...\n")
 
     for row in rows:
         name = row["Restaurant_Name"]
