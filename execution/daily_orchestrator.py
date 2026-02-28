@@ -89,6 +89,10 @@ def main():
     
     if res == 0:
         print("\n🎉 Automatic upload completed successfully!")
+        # 4. Sync Map Data
+        print("\n🛰️  Syncing premium map data...")
+        map_bridge_script = os.path.join(os.path.dirname(__file__), "map_data_bridge.py")
+        os.system(f"python3 {map_bridge_script}")
     else:
         print("\n⚠️ Automatic upload skipped. Please check the CSV at .tmp/staged_restaurants.csv and run publish_from_csv.py manually.")
 
