@@ -151,19 +151,36 @@ def simplify_restaurant(page):
     google_url = get_url("google map URL")
     
     place_id = extract_place_id(google_url)
-    tags = get_multi_select("태그")
     
-    # Simple icon mapping based on tags
-    icon_type = "default"
+    def clean_tags(tag_list):
+        """Unifies redundant tags like '발/다이닝바', '바(Bar)', etc."""
+        if not tag_list: return []
+        
+        # Tag Mapping/Unification
+        mapping = {
+            "발/다이닝바": "다이닝 바",
+            "다이닝바": "다이닝 바",
+            "바(Bar)": "바(Bar)",
+            "발": "다이닝 바"
+        }
+        
+        cleaned = []
+        for t in tag_list:
+            # Check for direct mapping or substrings
+            new_tag = mapping.get(t, t)
+            cleaned.append(new_tag)
+            
+        # Deduplicate while preserving order (using dict as ordered set)
+        return list(dict.fromkeys(cleaned))
+
+    # Icon mapping
+    tags = clean_tags(get_multi_select("태그"))
+    icon_type = "restaurant"
     tags_lower = [t.lower() for t in tags]
-    if any(k in tags_lower for k in ["라멘", "ramen", "면"]):
-        icon_type = "ramen"
-    elif any(k in tags_lower for k in ["스시", "sushi", "초밥", "회"]):
-        icon_type = "sushi"
+    if any(k in tags_lower for k in ["이자카야", "izakaya", "술집", "맥주", "야키토리", "다이닝 바", "바(bar)"]):
+        icon_type = "izakaya"
     elif any(k in tags_lower for k in ["카페", "cafe", "디저트", "커피"]):
         icon_type = "cafe"
-    elif any(k in tags_lower for k in ["이자카야", "izakaya", "술집", "맥주", "야키토리"]):
-        icon_type = "izakaya"
 
     # Get coordinates
     lat, lng = extract_coords_from_url(google_url)
@@ -179,8 +196,8 @@ def simplify_restaurant(page):
         "lng": lng,
         "tabelog_rating": get_number("tabelog 평점"),
         "google_rating": get_number("google 평점"),
-        "tags": get_multi_select("태그"),
-        "summary": get_plain_text("요약"),
+        "tags": tags,
+        "summary": get_plain_text("요약").replace("\n", " ").replace("\r", ""), # CRITICAL: No unescaped newlines
         "station": get_plain_text("교통"),
         "region": get_select("지역"),
         "thumbnail": get_thumbnail(),
@@ -190,30 +207,46 @@ def simplify_restaurant(page):
 
 def save_csv(restaurants, output_path):
     """Saves a list of restaurants to a CSV file optimized for Google My Maps."""
-    if not restaurants:
-        return
-    
+    if not restaurants: return
     keys = ["Name", "Address", "Latitude", "Longitude", "Rating_Tabelog", "Rating_Google", "Tags", "Summary", "Station", "Region", "Thumbnail", "Google_URL", "Tabelog_URL"]
-    
     with open(output_path, "w", encoding="utf-8-sig", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=keys)
         writer.writeheader()
         for r in restaurants:
             writer.writerow({
-                "Name": r["name"],
-                "Address": r["address"],
-                "Latitude": r["lat"],
-                "Longitude": r["lng"],
-                "Rating_Tabelog": r["tabelog_rating"],
-                "Rating_Google": r["google_rating"],
-                "Tags": ", ".join(r["tags"]),
-                "Summary": r["summary"],
-                "Station": r["station"],
-                "Region": r["region"],
-                "Thumbnail": r["thumbnail"],
-                "Google_URL": r["google_url"],
-                "Tabelog_URL": r["tabelog_url"]
+                "Name": r["name"], "Address": r["address"], "Latitude": r["lat"], "Longitude": r["lng"],
+                "Rating_Tabelog": r["tabelog_rating"], "Rating_Google": r["google_rating"],
+                "Tags": ", ".join(r["tags"]), "Summary": r["summary"], "Station": r["station"],
+                "Region": r["region"], "Thumbnail": r["thumbnail"],
+                "Google_URL": r["google_url"], "Tabelog_URL": r["tabelog_url"]
             })
+
+def inject_to_html(restaurants, html_path):
+    """Injects restaurant data directly into the index.html file to bypass CORS."""
+    if not os.path.exists(html_path):
+        print(f"⚠️  HTML file not found: {html_path}")
+        return
+
+    print(f"💉 Injecting {len(restaurants)} items into {os.path.basename(html_path)}...")
+    
+    # Use json.dumps with ensure_ascii=False and no extra formatting for safer injection
+    json_data = json.dumps(restaurants, ensure_ascii=False)
+    
+    with open(html_path, "r", encoding="utf-8") as f:
+        content = f.read()
+
+    # Regex to find the window.RESTAURANT_DATA assignment block
+    # Matches window.RESTAURANT_DATA = [ ... ];
+    pattern = r'window\.RESTAURANT_DATA\s*=\s*\[.*?\];'
+    
+    # We need to be careful with the replacement string formatting
+    replacement = f"window.RESTAURANT_DATA = {json_data};"
+    
+    new_content = re.sub(pattern, replacement, content, flags=re.DOTALL)
+    
+    with open(html_path, "w", encoding="utf-8") as f:
+        f.write(new_content)
+    print(f"✅ Injection complete.")
 
 def main():
     print("🚀 Starting Map Data Bridge (Notion -> JSON & CSV)")
@@ -265,6 +298,11 @@ def main():
     # 3. Save All-in-one CSV
     all_csv_path = os.path.join(export_dir, "restaurants_all.csv")
     save_csv(processed, all_csv_path)
+
+    # 4. Inject into index.html
+    html_path = os.path.join(base_dir, "web_map", "index.html")
+    inject_to_html(processed, html_path)
+    
     print(f"🌟 Full CSV export saved to {all_csv_path}")
 
 if __name__ == "__main__":

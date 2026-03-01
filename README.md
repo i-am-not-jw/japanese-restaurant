@@ -7,6 +7,9 @@
 *   **Dual Platform Cross-Validation**: 타베로그(전문가 평점)와 구글 맵(실시간 대중 평점) 데이터를 대조하여 신뢰도 극대화.
 *   **AI-Powered Curation**: Gemini AI를 활용한 리뷰 요약, 영업시간 번역 및 교통 정보 정제.
 *   **Automatic Notion Publishing**: 수집된 데이터를 Notion DB로 자동 업로드 및 업데이트(Upsert).
+*   **Premium Web Map UI**: 현대적이고 직관적인 드롭다운 기반 필터링 시스템(지역/구/음식 종류)과 Glassmorphism 디자인 적용.
+*   **Pure Japanese Naming**: 타베로그 원문 이름을 그대로 유지하여 데이터의 원형을 보존 (`は야부사`와 같은 혼용 방지).
+*   **Monetization Ready**: 지역별(도쿄, 오사카 등) CSV 파티셔닝 및 Google My Maps 최적화 포맷 지원.
 *   **Japanese Text Detection**: 자동 업로드 전 데이터의 무결성(일본어 잔존 여부)을 스스로 체크.
 *   **Tag Standardization**: 평점 뱃지, 업종, 지역, 결제 수단별로 일관된 색상 코드 적용.
 
@@ -37,7 +40,13 @@ playwright install chromium
 ```bash
 # 전체 파이프라인 수집 및 자동 업로드
 python3 run_pipeline.py --publish
+
+# 웹 맵 데이터 동기화 및 CSV 수출
+python3 execution/map_data_bridge.py
 ```
+
+## 💰 Monetization
+`exports/` 폴더에는 Google My Maps에 즉시 임포트 가능한 지역별 CSV 파일들이 생성됩니다. 이를 활용해 지역별 맛집 지도를 상품화할 수 있습니다.
 
 ## 🛰️ Notion Integration
 노션의 '버튼' 기능을 통해 원클릭으로 파이프라인을 트리거할 수 있습니다. 상세 설정은 `WEBHOOK_SETUP.md`를 참고하세요.

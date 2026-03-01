@@ -2,6 +2,21 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-03-02
+
+### Added
+- **Dropdown-based Filtering**: Refactored the web map filter system into hierarchical dropdowns (Region > Sub-region) for better organization.
+- **Regional CSV Export**: Added automatic partitioning of restaurant data into regional CSVs (Tokyo, Osaka, etc.) in the `exports/` folder.
+- **Improved UI**: Implemented teardrop markers (32px) and glassmorphism styling for a more premium, modern aesthetic.
+
+### Improved
+- **Data Purity**: Switched back to pure Japanese naming for restaurants to preserve original Tabelog brand identity.
+- **Responsive Layout**: Optimized the filter bar and info panel for better accessibility across different screen sizes.
+
+### Fixed
+- **Name Corruption**: Identified and removed aggressive normalization logic that caused Japanese/Korean character merging (e.g., `は야부사`).
+- **UI Overlap**: Disabled default Google Maps UI controls to prevent interference with the custom glassmorphism overlay.
+
 ## [1.1.0] - 2026-02-27
 
 ### Added
