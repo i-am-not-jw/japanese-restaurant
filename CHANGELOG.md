@@ -1,54 +1,54 @@
-# Changelog
+# 변경 이력 (Changelog)
 
-All notable changes to this project will be documented in this file.
+이 프로젝트의 모든 주요 변경 사항은 이 파일에 기록됩니다.
 
 ## [1.3.0] - 2026-03-02
 
-### Added
-- **Two-Stage Sync & Review Flow**: Implemented a mandatory staging phase. Crawled data now lands in a "Staging Database" for manual review before final publishing.
-- **Notion Notification System**: Automatic @mention tagging in Notion when a collection run is complete, alerting the user to review the staging data.
-- **Finalize & Publish Logic**: New `finalize_sync.py` script that moves approved data from Staging to the Main Database and clears the staging area.
-- **Reboot Persistence (Launchd)**: Created a macOS `launchd` service and health check script to ensure the webhook receiver and ngrok automatically restart after an iMac reboot.
+### 추가됨
+- **2단계 동기화 및 검토 워크플로우**: 데이터 무결성을 위해 필수 검토 단계를 도입했습니다. 수집된 데이터는 최종 배포 전 "검토용 데이터베이스(Staging DB)"에 먼저 적재됩니다.
+- **노션 알림 시스템**: 데이터 수집이 완료되면 노션에서 사용자를 @멘션하여 검토 준비가 되었음을 자동으로 알립니다.
+- **최종 승인 및 배포 로직**: 검토용 DB의 데이터를 메인 DB로 이동시키고 스테이징 영역을 비우는 `finalize_sync.py` 스크립트를 추가했습니다.
+- **재부팅 자동 실행 설정 (Launchd)**: iMac 재부팅 시에도 웹훅 서버와 ngrok이 자동으로 재실행되도록 macOS `launchd` 서비스와 상태 체크 스크립트를 구현했습니다.
 
-### Improved
-- **Webhook Architecture**: Added a new `/finalize-sync` endpoint to handle the second stage of the publishing workflow.
+### 개선됨
+- **웹훅 아키텍처**: 2단계 배포 워크플로우를 처리하기 위한 새로운 `/finalize-sync` 엔드포인트를 추가했습니다.
 
-### Fixed
-- **Sleep Prevention Cleanup**: Removed native `caffeinate` logic in favor of third-party tools (Amphetamine) as per user preference.
+### 수정됨
+- **시스템 잠자기 방지 로직 정리**: 사용자 선호에 따라 기본 `caffeinate` 로직을 제거하고 외부 툴(Amphetamine 등) 사용을 권장하도록 수정했습니다.
 
 ## [1.2.0] - 2026-03-02
 
-### Added
-- **Dropdown-based Filtering**: Refactored the web map filter system into hierarchical dropdowns (Region > Sub-region) for better organization.
-- **Regional CSV Export**: Added automatic partitioning of restaurant data into regional CSVs (Tokyo, Osaka, etc.) in the `exports/` folder.
-- **Improved UI**: Implemented teardrop markers (32px) and glassmorphism styling for a more premium, modern aesthetic.
+### 추가됨
+- **드롭다운 기반 필터링**: 웹 지도의 필터 시스템을 계층형 드롭다운(지역 > 상세 지역)으로 개편하여 조직적인 데이터 검색이 가능하도록 했습니다.
+- **지역별 CSV 내보내기**: 수집된 데이터를 지역별(도쿄, 오사카 등)로 분류하여 `exports/` 폴더에 자동으로 저장하는 기능을 추가했습니다.
+- **UI 디자인 개선**: 프리미엄하고 현대적인 느낌을 위해 티어드롭 모양의 마커(32px)와 글래스모피즘 스타일을 적용했습니다.
 
-### Improved
-- **Data Purity**: Switched back to pure Japanese naming for restaurants to preserve original Tabelog brand identity.
-- **Responsive Layout**: Optimized the filter bar and info panel for better accessibility across different screen sizes.
+### 개선됨
+- **데이터 순도 유지**: 타베로그의 오리지널 브랜드 아이덴티티를 보존하기 위해 식당 이름을 순수 일본어로만 표시하도록 전환했습니다.
+- **반응형 레이아웃**: 다양한 화면 크기에서 필터 바와 정보 패널이 최적으로 보이도록 최적화했습니다.
 
-### Fixed
-- **Name Corruption**: Identified and removed aggressive normalization logic that caused Japanese/Korean character merging (e.g., `は야부사`).
-- **UI Overlap**: Disabled default Google Maps UI controls to prevent interference with the custom glassmorphism overlay.
+### 수정됨
+- **이름 깨짐 현상**: 일본어와 한국어가 부자연스럽게 뒤섞이던(예: `は야부사`) 과도한 정규화 로직을 찾아 제거했습니다.
+- **UI 겹침 문제**: 커스텀 글래스모피즘 오버레이와 간섭이 생기지 않도록 구글 맵 기본 컨트롤을 비활성화했습니다.
 
 ## [1.1.0] - 2026-02-27
 
-### Added
-- **Automated CSV Review**: Added `--auto` mode in `publish_from_csv.py` to detect remaining Japanese text before uploading.
-- **Tag Color Standardization**: Implemented automatic Notion tag color synchronization by category (Badges, Cuisine, Location, Payment).
-- **Orchestrator Integration**: `daily_orchestrator.py` now automatically attempts to publish data if it passes the Japanese detection check.
-- **Webhook Status Page**: Added a simple auto-closing success page for browser-triggered webhooks.
+### 추가됨
+- **자동 CSV 검토**: `publish_from_csv.py`에 `--auto` 모드를 추가하여 업로드 전 잔존 일본어 텍스트를 스스로 감지하도록 했습니다.
+- **노션 태그 색상 표준화**: 카테고리별(평점 뱃지, 음식 종류, 위치, 결제 수단)로 노션 태그 색상을 자동 동기화하는 기능을 구현했습니다.
+- **오케스트레이터 통합**: `daily_orchestrator.py`가 일본어 감지 테스트 통과 시 자동으로 데이터를 출판하도록 통합했습니다.
+- **웹훅 상태 페이지**: 브라우저를 통한 웹훅 트리거 시 자동으로 닫히는 성공 안내 페이지를 추가했습니다.
 
-### Improved
-- **Path Handling**: Updated all scripts to use relative paths or unified `/tmp` storage for better portability after directory renaming.
-- **AI Rescue Logic**: Enhanced Gemini fallbacks for railway line translation and station info cleaning.
+### 개선됨
+- **경로 처리 최적화**: 디렉토리 구조 변경에 대응하기 위해 모든 스크립트가 상대 경로 또는 `/tmp` 통합 저장소를 사용하도록 업데이트했습니다.
+- **AI 구조 로직**: 철도 노선 번역 및 역 정보 정제를 위한 Gemini AI의 예외 처리 로직을 강화했습니다.
 
-### Fixed
-- **Environment Issues**: Corrected virtual environment dependencies for `flask` and `python-dotenv`.
-- **Notion API Limits**: Optimized tag sync logic to respect Notion's 100-option limit for multi-select properties.
+### 수정됨
+- **환경 설정 문제**: `flask` 및 `python-dotenv`의 가상 환경 의존성 문제를 해결했습니다.
+- **노션 API 제한 대응**: 노션 다중 선택 속성의 100개 옵션 제한을 고려하여 태그 동기화 로직을 최적화했습니다.
 
 ## [1.0.0] - 2026-02-15
-- Initial release of the Japan Restaurant Scraper pipeline.
-- Cross-platform validation between Tabelog and Google Maps.
-- AI-driven review summarization and translation.
-- Basic Notion database publishing.
+- 일본 맛집 스크래퍼 파이프라인 초기 릴리스.
+- 타베로그와 구글 맵 간의 교차 검증 시스템 구축.
+- AI 기반 리뷰 요약 및 번역 기능.
+- 기본적인 노션 데이터베이스 출판 기능.
