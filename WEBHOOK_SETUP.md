@@ -55,6 +55,20 @@ python3 execution/webhook_receiver.py
 
 ---
 
+## 3.1 최종 승인 및 배포 버튼 설정
+
+검토용 데이터베이스(Staging)에 쌓인 데이터를 실제 맛집 DB로 옮기고 웹 지도에 반영하기 위한 버튼입니다.
+
+1.  **버튼 이름**: `🚀 최종 승인 및 배포`
+2.  **작업 추가**: `웹훅 보내기 (Send webhook)` 선택
+3.  **URL**: `https://<너의-ngrok-주소>.ngrok-free.app/finalize-sync` 입력
+4.  **헤더 추가**:
+    - **Key**: `Authorization`
+    - **Value**: `Bearer <너의-NOTION_WEBHOOK_SECRET>`
+5.  **완료**를 누릅니다.
+
+---
+
 ## 5. 유료 구독 없이 무료로 버튼 만들기 (Link Button 대안)
 
 노션 무료 요금제에서는 위 '웹훅 보내기' 기능이 제한될 수 있습니다. 이 경우 아래 **'링크 열기'** 버튼을 사용하세요.
@@ -78,10 +92,16 @@ python3 execution/webhook_receiver.py
 
 ---
 
-## 💡 꿀팁: 맥이 잠들지 않게 하기 (Sleep Prevention)
+## 6. 재부팅 시 자동 실행 설정 (Persistence)
 
-현재 파이프라인은 macOS의 `caffeinate` 명령어를 사용하도록 설정되어 있습니다. 
-- **작동 방식**: 버튼을 누르면 파이프라인이 실행되는 동안 맥이 '잠자기(Sleep)' 모드로 들어가는 것을 자동으로 차단합니다. 
-- **주의 사항**: 
-    - 버튼을 누르는 순간에는 맥이 **깨어 있는 상태**(또는 최소한 네트워크 수신이 가능한 상태)여야 합니다. 
-    - 맥의 덮개를 닫아도 네트워크가 유지되도록 설정(`시스템 설정 > 디스플레이 > 고급 > 전원 어댑터 연결 시 디스플레이가 꺼져 있을 때 자동으로 잠들지 않게 하기`)해두시면 가장 좋습니다.
+iMac이 재부팅되더라도 파이프라인 수집 서버와 ngrok이 자동으로 실행되도록 설정되어 있습니다.
+
+### 설정 상세
+- **자동 시작 서비스**: `com.antigravity.webhook.plist`를 통해 5분마다 상태를 체크하고, 꺼져 있으면 자동으로 재실행합니다.
+- **상태 관리 스크립트**: `execution/health_check.sh`
+
+### 수동 관리 (필요 시)
+만약 서비스를 수동으로 끄거나 켜고 싶다면 아래 명령어를 사용하세요.
+- **서비스 끄기**: `launchctl unload ~/Library/LaunchAgents/com.antigravity.webhook.plist`
+- **서비스 켜기**: `launchctl load ~/Library/LaunchAgents/com.antigravity.webhook.plist`
+- **로그 확인**: `.tmp/webhook_receiver.log` 파일에서 실행 이력을 확인할 수 있습니다.

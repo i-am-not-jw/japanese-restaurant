@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-03-02
+
+### Added
+- **Two-Stage Sync & Review Flow**: Implemented a mandatory staging phase. Crawled data now lands in a "Staging Database" for manual review before final publishing.
+- **Notion Notification System**: Automatic @mention tagging in Notion when a collection run is complete, alerting the user to review the staging data.
+- **Finalize & Publish Logic**: New `finalize_sync.py` script that moves approved data from Staging to the Main Database and clears the staging area.
+- **Reboot Persistence (Launchd)**: Created a macOS `launchd` service and health check script to ensure the webhook receiver and ngrok automatically restart after an iMac reboot.
+
+### Improved
+- **Webhook Architecture**: Added a new `/finalize-sync` endpoint to handle the second stage of the publishing workflow.
+
+### Fixed
+- **Sleep Prevention Cleanup**: Removed native `caffeinate` logic in favor of third-party tools (Amphetamine) as per user preference.
+
 ## [1.2.0] - 2026-03-02
 
 ### Added

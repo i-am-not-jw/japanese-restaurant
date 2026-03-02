@@ -122,7 +122,21 @@ body {
     padding: 12px 0;
     border-top: 1px solid var(--border);
     font-size: 14px;
-    color: var(--text-sub);
+    color: var(--text-main);
+}
+
+.info-footer {
+    padding: 0 24px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    color: #999;
+}
+
+.date-label {
+    display: flex;
+    justify-content: space-between;
 }
 
 .action-row {

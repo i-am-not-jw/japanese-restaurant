@@ -19,15 +19,15 @@ def trigger_via_browser():
     token = request.args.get("token")
     if not token or token != WEBHOOK_TOKEN:
         return "Invalid Token", 401
-    # 2. Trigger Orchestrator (with caffeinate to prevent sleep)
+
+    # 2. Trigger Orchestrator (Non-blocking)
     try:
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         orchestrator_path = os.path.join(base_dir, "execution", "daily_orchestrator.py")
         
-        print(f"🚀 [Webhook] Triggering pipeline with caffeinate: {orchestrator_path}")
+        print(f"🚀 [Webhook] Triggering pipeline: {orchestrator_path}")
         
-        # 'caffeinate -i' prevents system idle sleep while the command is running
-        subprocess.Popen(["caffeinate", "-i", "python3", orchestrator_path], cwd=base_dir)
+        subprocess.Popen(["python3", orchestrator_path], cwd=base_dir)
         
         # 3. Return a simple auto-closing success page
         return """
@@ -56,15 +56,40 @@ def trigger_pipeline():
         base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         orchestrator_path = os.path.join(base_dir, "execution", "daily_orchestrator.py")
         
-        print(f"🚀 [Webhook] Triggering pipeline with caffeinate: {orchestrator_path}")
+        print(f"🚀 [Webhook] Triggering pipeline: {orchestrator_path}")
         
-        # 'caffeinate -i' prevents system idle sleep while the command is running
-        subprocess.Popen(["caffeinate", "-i", "python3", orchestrator_path], cwd=base_dir)
+        # Trigger Orchestrator (Non-blocking)
+        subprocess.Popen(["python3", orchestrator_path], cwd=base_dir)
         
         return jsonify({
             "status": "success", 
             "message": "Pipeline triggered successfully",
             "active_script": "daily_orchestrator.py"
+        }), 200
+        
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route('/finalize-sync', methods=['POST'])
+def finalize_sync():
+    # 1. Validate Secret Token
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or auth_header != f"Bearer {WEBHOOK_TOKEN}":
+        return jsonify({"status": "error", "message": "Unauthorized"}), 401
+
+    # 2. Trigger Finalize Script (Non-blocking)
+    try:
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        finalize_path = os.path.join(base_dir, "execution", "finalize_sync.py")
+        
+        print(f"🚀 [Webhook] Finalizing Sync: {finalize_path}")
+        
+        subprocess.Popen(["python3", finalize_path], cwd=base_dir)
+        
+        return jsonify({
+            "status": "success", 
+            "message": "Finalize sync triggered successfully",
+            "active_script": "finalize_sync.py"
         }), 200
         
     except Exception as e:

@@ -146,6 +146,16 @@ def simplify_restaurant(page):
             return f.get("external", {}).get("url") or f.get("file", {}).get("url")
         return None
 
+    def get_time(prop_name):
+        prop = props.get(prop_name)
+        if not prop: return None
+        # created_time and last_edited_time are direct strings in their respective fields
+        t = prop.get("created_time") or prop.get("last_edited_time")
+        if t:
+            # Format: 2024-03-02T07:36:00.000Z -> 2024-03-02
+            return t.split("T")[0]
+        return None
+
     name = get_title()
     address = get_plain_text("장소")
     google_url = get_url("google map URL")
@@ -202,13 +212,15 @@ def simplify_restaurant(page):
         "region": get_select("지역"),
         "thumbnail": get_thumbnail(),
         "google_url": google_url,
-        "tabelog_url": get_url("tabelog URL")
+        "tabelog_url": get_url("tabelog URL"),
+        "created_at": get_time("생성 일시"),
+        "updated_at": get_time("최종 편집 일시")
     }
 
 def save_csv(restaurants, output_path):
     """Saves a list of restaurants to a CSV file optimized for Google My Maps."""
     if not restaurants: return
-    keys = ["Name", "Address", "Latitude", "Longitude", "Rating_Tabelog", "Rating_Google", "Tags", "Summary", "Station", "Region", "Thumbnail", "Google_URL", "Tabelog_URL"]
+    keys = ["Name", "Address", "Latitude", "Longitude", "Rating_Tabelog", "Rating_Google", "Tags", "Summary", "Station", "Region", "Thumbnail", "Google_URL", "Tabelog_URL", "Created_At", "Updated_At"]
     with open(output_path, "w", encoding="utf-8-sig", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=keys)
         writer.writeheader()
@@ -218,7 +230,8 @@ def save_csv(restaurants, output_path):
                 "Rating_Tabelog": r["tabelog_rating"], "Rating_Google": r["google_rating"],
                 "Tags": ", ".join(r["tags"]), "Summary": r["summary"], "Station": r["station"],
                 "Region": r["region"], "Thumbnail": r["thumbnail"],
-                "Google_URL": r["google_url"], "Tabelog_URL": r["tabelog_url"]
+                "Google_URL": r["google_url"], "Tabelog_URL": r["tabelog_url"],
+                "Created_At": r["created_at"], "Updated_At": r["updated_at"]
             })
 
 def inject_to_html(restaurants, html_path):

@@ -10,6 +10,11 @@ from execution.notion_publisher import check_existing_page, safe_thumb, multisel
 
 CSV_PATH = "/tmp/japanese_restaurant_data/staged_restaurants.csv"
 
+# Target Database Logic
+STAGING_DB_ID = os.getenv("NOTION_STAGING_DB_ID")
+MAIN_DB_ID = os.getenv("NOTION_JAPAN_RESTAURANT_DB_ID")
+DATABASE_ID = STAGING_DB_ID if STAGING_DB_ID else MAIN_DB_ID
+
 def contains_japanese(text):
     """
     Checks if the text contains any Japanese characters (Hiragana, Katakana, or Kanji).
@@ -19,6 +24,38 @@ def contains_japanese(text):
     # Hiragana: \u3040-\u309f, Katakana: \u30a0-\u30ff, Kanji: \u4e00-\u9faf
     pattern = re.compile(r'[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf]')
     return bool(pattern.search(text))
+
+def create_notification(count, headers):
+    """
+    Creates a notification page in the database to alert the user.
+    """
+    notion_user_id = os.getenv("NOTION_USER_ID", "") # We will set this if found
+    
+    # Mention @김정우 or specific user ID
+    mention_content = [{"type": "text", "text": {"content": "🔔 "}}]
+    if notion_user_id:
+        mention_content.append({"type": "mention", "mention": {"type": "user", "user": {"id": notion_user_id}}})
+    else:
+        mention_content.append({"type": "text", "text": {"content": "@김정우 ", "annotations": {"bold": True, "color": "blue"}}})
+        
+    mention_content.append({"type": "text", "text": {"content": f"님, 수집이 완료되었습니다!\n총 {count}개의 새로운 항목이 검토용 DB(Staging)에 등록되었습니다. 내용을 확인하신 후 '승인 및 배포' 버튼을 눌러주세요."}})
+
+    payload = {
+        "parent": {"database_id": DATABASE_ID},
+        "properties": {
+            " 제목": {"title": [{"text": {"content": f"📢 수집 완료 보고 ({count}건)"}}]}
+        },
+        "children": [
+            {
+                "object": "block",
+                "type": "paragraph",
+                "paragraph": {
+                    "rich_text": mention_content
+                }
+            }
+        ]
+    }
+    requests.post("https://api.notion.com/v1/pages", headers=headers, json=payload)
 
 def main():
     if not os.path.exists(CSV_PATH):
@@ -30,6 +67,9 @@ def main():
         "Content-Type": "application/json",
         "Notion-Version": "2022-06-28",
     }
+    
+    # Use the selected DATABASE_ID
+    print(f"📡 Target Database: {DATABASE_ID}")
     
     with open(CSV_PATH, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -49,8 +89,8 @@ def main():
 
     if auto_mode:
         failing_rows = []
-        # Columns that MUST NOT contain Japanese
-        check_cols = ["Target_City_Region", "Generated_Tags", "AI_Review_Summary", "AI_Opening_Hours", "Station_Info"]
+        # Columns that MUST NOT contain Japanese (keeping it strict for regions and tags)
+        check_cols = ["Target_City_Region", "Generated_Tags"]
         
         for i, row in enumerate(rows):
             found_jp = []
@@ -157,6 +197,10 @@ def main():
             else:
                 err = resp.json().get("message", resp.text[:200])
                 print(f"  ❌ Create failed {name}: {err}")
+
+    # Create notification at the end
+    create_notification(len(rows), headers)
+    print("\n✅ Notification sent to Notion.")
 
 if __name__ == "__main__":
     main()

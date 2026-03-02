@@ -206,6 +206,10 @@ function showDetails(res) {
             <div class="info-row">📍 ${res.address}</div>
             <div class="info-row">🚉 ${res.station || ''}</div>
         </div>
+        <div class="info-footer">
+            <div class="date-label"><span>최초 수집</span> <span>${res.created_at || '-'}</span></div>
+            <div class="date-label"><span>최종 동기화</span> <span>${res.updated_at || '-'}</span></div>
+        </div>
         <div class="action-row">
              <a href="${res.google_url}" target="_blank" class="btn-primary">Google Maps에서 열기</a>
         </div>

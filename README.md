@@ -4,14 +4,14 @@
 
 ## 🚀 Key Features
 
+*   **Premium Web Map UI**: 현대적이고 직관적인 드롭다운 기반 필터링 시스템(지역/구/음식 종류)과 Glassmorphism 디자인 적용.
+*   **Pure Japanese Naming**: 타베로그 원문 이름을 그대로 유지하여 데이터의 원형을 보존 (`은하수` 등 혼용 방지).
+*   **Two-Stage Sync & Review**: 수집 후 검토용 DB(Staging)에서 승인을 거쳐야만 최종 배포되는 안전한 워크플로우.
+*   **Notion Notifications**: 수집 완료 시 노션에서 사용자(@태그)에게 즉시 푸시 알림 발송.
+*   **Reboot Persistence**: iMac 재부팅 시에도 수집 서버와 터널이 자동으로 자가 복구되어 상시 대기.
+*   **Monetization Ready**: 지역별(도쿄, 오사카 등) CSV 파티셔닝 및 Google My Maps 최적화 포맷 지원.
 *   **Dual Platform Cross-Validation**: 타베로그(전문가 평점)와 구글 맵(실시간 대중 평점) 데이터를 대조하여 신뢰도 극대화.
 *   **AI-Powered Curation**: Gemini AI를 활용한 리뷰 요약, 영업시간 번역 및 교통 정보 정제.
-*   **Automatic Notion Publishing**: 수집된 데이터를 Notion DB로 자동 업로드 및 업데이트(Upsert).
-*   **Premium Web Map UI**: 현대적이고 직관적인 드롭다운 기반 필터링 시스템(지역/구/음식 종류)과 Glassmorphism 디자인 적용.
-*   **Pure Japanese Naming**: 타베로그 원문 이름을 그대로 유지하여 데이터의 원형을 보존 (`は야부사`와 같은 혼용 방지).
-*   **Monetization Ready**: 지역별(도쿄, 오사카 등) CSV 파티셔닝 및 Google My Maps 최적화 포맷 지원.
-*   **Japanese Text Detection**: 자동 업로드 전 데이터의 무결성(일본어 잔존 여부)을 스스로 체크.
-*   **Tag Standardization**: 평점 뱃지, 업종, 지역, 결제 수단별로 일관된 색상 코드 적용.
 
 ## 🏗️ Architecture
 
@@ -27,6 +27,7 @@
 *   Python 3.9+
 *   Notion API Token & Database ID
 *   Google Gemini API Key
+*   ngrok Account (for Webhook)
 
 ### Installation
 ```bash
@@ -38,20 +39,17 @@ playwright install chromium
 
 ### Running Pipeline
 ```bash
-# 전체 파이프라인 수집 및 자동 업로드
+# 전체 파이프라인 수집 (Staging DB로 업로드)
 python3 run_pipeline.py --publish
 
 # 웹 맵 데이터 동기화 및 CSV 수출
 python3 execution/map_data_bridge.py
 ```
 
-## 💰 Monetization
-`exports/` 폴더에는 Google My Maps에 즉시 임포트 가능한 지역별 CSV 파일들이 생성됩니다. 이를 활용해 지역별 맛집 지도를 상품화할 수 있습니다.
-
-## 🛰️ Notion Integration
-노션의 '버튼' 기능을 통해 원클릭으로 파이프라인을 트리거할 수 있습니다. 상세 설정은 `WEBHOOK_SETUP.md`를 참고하세요.
+## 🛰️ Notion Integration & Persistence
+노션의 '버튼' 기능을 통해 원클릭으로 파이프라인을 트리거하고 최종 승인할 수 있습니다. 
+상세 설정 및 서버 상시 가동 방법은 `WEBHOOK_SETUP.md`를 참고하세요.
 
 ## 📝 Documentation
-*   [Project Overview](project_overview.md): 시스템 상세 설계 및 철학
-*   [Handover Guide](HANDOVER.md): 운영 및 유지보수 가이드
-*   [Webhook Setup](WEBHOOK_SETUP.md): 노션 버튼 연동 가이드
+*   [Webhook Setup](WEBHOOK_SETUP.md): 노션 버튼 연동 및 자동 실행 가이드
+*   [Changelog](CHANGELOG.md): 주요 업데이트 내역
