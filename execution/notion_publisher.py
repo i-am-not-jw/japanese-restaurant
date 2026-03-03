@@ -11,11 +11,14 @@ from datetime import datetime
 
 # Credentials
 def load_env():
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # Load all found files to aggregate variables
     env_paths = [
-        os.path.normpath(os.path.join(script_dir, "..", ".env")),
-        "/tmp/japanese_restaurant_data/.env"
+        "/tmp/japanese_restaurant_data/.env",
+        os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", ".env")),
+        "/Users/jw/Desktop/japanese-restaurant/.env",
+        os.path.join(os.getcwd(), ".env")
     ]
+    loaded_files = []
     for env_path in env_paths:
         if os.path.exists(env_path):
             try:
@@ -23,15 +26,30 @@ def load_env():
                     for line in f:
                         if "=" in line and not line.startswith("#"):
                             k, v = line.strip().split("=", 1)
-                            os.environ.setdefault(k, v)
-                break # Stop at first found
-            except PermissionError:
-                continue
+                            os.environ[k] = v
+                loaded_files.append(env_path)
+            except Exception as e:
+                # print(f"DEBUG: Failed to read {env_path}: {e}")
+                pass
+    
+    if loaded_files:
+        if "DEBUG_PRINTED" not in os.environ:
+            print(f"📡 Environment aggregated from: {', '.join(loaded_files)}")
+            os.environ["DEBUG_PRINTED"] = "1"
+    else:
+        print("⚠️ No .env file found!")
 
 load_env()
 NOTION_TOKEN  = os.getenv("NOTION_TOKEN")  or "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"
-DATABASE_ID   = os.getenv("NOTION_JAPAN_RESTAURANT_DB_ID") or "307deb1120c1800f914fcc99c25dc0f8"
 GEMINI_KEY    = os.getenv("GEMINI_API_KEY") or "AIzaSyDgxh1klUXODqhlIStnhU51yheeu3xxewg"
+
+def get_database_id():
+    # Priority: Main -> Staging -> Hardcoded
+    return (os.getenv("NOTION_JAPAN_RESTAURANT_DB_ID") or 
+            os.getenv("NOTION_STAGING_DB_ID") or 
+            "307deb1120c1800f914fcc99c25dc0f8")
+
+DATABASE_ID = get_database_id()
 
 # ── Gemini AI summary ─────────────────────────────────────────────────────────
 def gemini_summarize(tabelog_reviews, google_reviews, restaurant_name):
@@ -235,6 +253,10 @@ def safe_number(val):
 def check_existing_page(tabelog_url, headers):
     if not tabelog_url:
         return None
+    
+    # DEBUG
+    # print(f"DEBUG: Querying DB {DATABASE_ID} for {tabelog_url}")
+    
     query_payload = {
         "filter": {
             "property": "tabelog URL",
@@ -244,7 +266,9 @@ def check_existing_page(tabelog_url, headers):
         }
     }
     try:
-        resp = requests.post(f"https://api.notion.com/v1/databases/{DATABASE_ID}/query", headers=headers, json=query_payload)
+        db_id = get_database_id()
+        # print(f"  [DEBUG] Querying DB {db_id} for {tabelog_url}")
+        resp = requests.post(f"https://api.notion.com/v1/databases/{db_id}/query", headers=headers, json=query_payload)
         if resp.status_code == 200:
             results = resp.json().get("results", [])
             if results:
@@ -269,9 +293,10 @@ def get_db_tag_options(headers):
     global _db_tag_options_cache
     if _db_tag_options_cache is not None:
         return _db_tag_options_cache
+    db_id = get_database_id()
     try:
         resp = requests.get(
-            f"https://api.notion.com/v1/databases/{DATABASE_ID}",
+            f"https://api.notion.com/v1/databases/{db_id}",
             headers=headers
         )
         if resp.status_code == 200:

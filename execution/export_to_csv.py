@@ -72,9 +72,9 @@ def main():
                 item.get("tabelog_reviews", []),
                 item.get("google_reviews", []),
                 name
-            )
+            ).replace('"', '""') # Standard CSV escape
             
-            hours = translate_hours(item.get("opening_hours") or "")
+            hours = translate_hours(item.get("opening_hours") or "").replace('"', '""')
             
             row = [
                 item.get("region", ""),

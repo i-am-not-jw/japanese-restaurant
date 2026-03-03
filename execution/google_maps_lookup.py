@@ -10,6 +10,11 @@ from playwright.async_api import async_playwright
 INPUT_PATH  = "/tmp/japanese_restaurant_data/tabelog_report.json"
 OUTPUT_PATH = INPUT_PATH
 
+def is_japanese(text):
+    """Check if the text contains Japanese characters (Hiragana or Katakana)."""
+    # Range: \u3040-\u309F (Hiragana), \u30A0-\u30FF (Katakana)
+    return bool(re.search(r"[\u3040-\u309F\u30A0-\u30FF]", text))
+
 
 async def scrape_maps(page, restaurant_name, address=""):
     """Search Google Maps for restaurant, return rating, review count, reviews, URL."""
@@ -85,7 +90,7 @@ async def scrape_maps(page, restaurant_name, address=""):
             print("    [DEBUG] Maps review count 0. Trying Local Search fallback...")
             try:
                 curr_url = page.url
-                fallback_url = f"https://www.google.com/search?q={requests_quote(query)}&tbm=lcl&hl=ko&gl=kr"
+                fallback_url = f"https://www.google.com/search?q={requests_quote(query)}&tbm=lcl&hl=ja&gl=jp"
                 await page.goto(fallback_url, wait_until="domcontentloaded", timeout=15000)
                 await page.wait_for_timeout(2000)
                 rc_val2 = await page.evaluate('''() => {
@@ -164,7 +169,11 @@ async def scrape_maps(page, restaurant_name, address=""):
                             date_str = f"{m2.group(1)}-{m2.group(2).zfill(2)}"
 
                 if text:
-                    reviews.append({"date": date_str, "text": text})
+                    # Only collect if it contains Japanese characters to avoid translated/foreign reviews
+                    if is_japanese(text):
+                        reviews.append({"date": date_str, "text": text})
+                    else:
+                        print(f"    [SCRAPED] Skipping non-Japanese review: {text[:50]}...")
 
             result["google_reviews"] = reviews
 
@@ -200,10 +209,23 @@ async def run():
         )
         page = await ctx.new_page()
 
+        # Load rescue names
+        rescue_path = os.path.join(os.path.dirname(__file__), "google_maps_rescue.json")
+        rescue_map = {}
+        if os.path.exists(rescue_path):
+            with open(rescue_path, "r", encoding="utf-8") as rf:
+                rescue_map = json.load(rf)
+
         for res in restaurants:
-            name = res["name"]
-            print(f"  Maps: {name}")
-            data = await scrape_maps(page, name, res.get("address", ""))
+            original_name = res["name"]
+            search_name = rescue_map.get(original_name, original_name)
+            
+            if search_name != original_name:
+                print(f"  Maps: {original_name} → [RESCUE] {search_name}")
+            else:
+                print(f"  Maps: {original_name}")
+
+            data = await scrape_maps(page, search_name, res.get("address", ""))
             res["google_rating"]       = data["google_rating"]
             res["google_review_count"] = data["google_review_count"]
             res["google_reviews"]      = data["google_reviews"]

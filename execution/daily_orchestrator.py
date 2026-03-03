@@ -30,7 +30,7 @@ TIER_2_CITIES = [
 
 ALL_CITIES = TARGET_CITIES + TIER_2_CITIES
 
-MAX_RESULTS_PER_CITY = 3  # Fetch more to ensure a rich final database
+MAX_RESULTS_PER_CITY = 10  # Fetch more to ensure a rich final database (target 161+)
 
 def run_script(script_name, args=[]):
     cmd = ["python3", f"execution/{script_name}"] + args

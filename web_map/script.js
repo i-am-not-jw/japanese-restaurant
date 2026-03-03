@@ -1,6 +1,6 @@
 let map;
-let service;
-let markers = []; // Track all markers for easy clearing
+let markerCluster;
+let markers = []; // Track all markers
 
 // Emoji symbols based on icon_type (Universal Japanese Style)
 const SYMBOLS = {
@@ -74,7 +74,7 @@ async function initMap() {
         service = new google.maps.places.PlacesService(map);
 
         setupFilters();
-        renderMarkers();
+        await loadData();
     } catch (error) {
         console.error('Error loading map:', error);
     }
@@ -143,8 +143,24 @@ function updateSubRegionDropdown() {
     };
 }
 
+async function loadData() {
+    try {
+        const response = await fetch('data/restaurants.json');
+        if (response.ok) {
+            window.RESTAURANT_DATA = await response.json();
+            console.log("📊 Loaded data from external JSON");
+        }
+    } catch (e) {
+        console.warn("⚠️ External data skip/fail, using embedded data:", e);
+    }
+    renderMarkers();
+}
+
 function renderMarkers() {
-    // Clear existing markers
+    // Clear existing markers and cluster
+    if (markerCluster) {
+        markerCluster.clearMarkers();
+    }
     markers.forEach(m => m.setMap(null));
     markers = [];
 
@@ -179,6 +195,36 @@ function renderMarkers() {
 
         markers.push(marker);
     });
+
+    // Initialize/Update MarkerClusterer
+    if (markers.length > 0) {
+        markerCluster = new markerClusterer.MarkerClusterer({
+            map: map,
+            markers: markers,
+            algorithm: new markerClusterer.SuperClusterAlgorithm({ radius: 60 }),
+            // Disable default zoom on click to handle it customly (prevent over-zooming)
+            onClusterClick: (event, cluster, map) => {
+                const position = cluster.position;
+                if (!position) return;
+
+                // Center the map on the cluster's calculated center
+                map.setCenter(position);
+
+                // Zoom in by a fixed amount, but cap at 15 to keep context (per user request)
+                let currentZoom = map.getZoom();
+                let nextZoom = currentZoom + 3; // Jump 3 levels for better transition
+
+                if (nextZoom > 15) nextZoom = 15;
+
+                // If we are already at or near 15, just zoom a bit more or stay
+                if (currentZoom >= 15) nextZoom = currentZoom + 1;
+
+                map.setZoom(nextZoom);
+
+                console.log("📍 Cluster centered at:", position.lat(), position.lng(), "Zoomed to:", nextZoom);
+            }
+        });
+    }
 }
 
 function showDetails(res) {

@@ -6,7 +6,16 @@ to the Notion database via Upsert.
 import sys, os, csv, requests, re
 
 sys.path.append(os.path.normpath(os.path.join(os.path.dirname(__file__), "..")))
-from execution.notion_publisher import check_existing_page, safe_thumb, multiselect, safe_url, safe_number, NOTION_TOKEN, DATABASE_ID
+from execution.notion_publisher import check_existing_page, safe_thumb, multiselect, safe_url, safe_number, NOTION_TOKEN, load_env, get_database_id
+from execution.data_integrity_check import check_integrity
+
+# Re-load environment to ensure custom IDs are picked up
+load_env()
+
+# DEBUG PRINTS
+print(f"DEBUG: NOTION_TOKEN from env: {os.getenv('NOTION_TOKEN')[:10]}...")
+print(f"DEBUG: STAGING_DB_ID from env: {os.getenv('NOTION_STAGING_DB_ID')}")
+print(f"DEBUG: MAIN_DB_ID from env: {os.getenv('NOTION_JAPAN_RESTAURANT_DB_ID')}")
 
 CSV_PATH = "/tmp/japanese_restaurant_data/staged_restaurants.csv"
 
@@ -14,6 +23,8 @@ CSV_PATH = "/tmp/japanese_restaurant_data/staged_restaurants.csv"
 STAGING_DB_ID = os.getenv("NOTION_STAGING_DB_ID")
 MAIN_DB_ID = os.getenv("NOTION_JAPAN_RESTAURANT_DB_ID")
 DATABASE_ID = STAGING_DB_ID if STAGING_DB_ID else MAIN_DB_ID
+
+print(f"📡 Target Database ID: {DATABASE_ID}")
 
 def contains_japanese(text):
     """
@@ -25,7 +36,7 @@ def contains_japanese(text):
     pattern = re.compile(r'[\u3040-\u309f\u30a0-\u30ff\u4e00-\u9faf]')
     return bool(pattern.search(text))
 
-def create_notification(count, headers):
+def create_notification(count, headers, integrity_report=None):
     """
     Creates a notification page in the database to alert the user.
     """
@@ -38,7 +49,20 @@ def create_notification(count, headers):
     else:
         mention_content.append({"type": "text", "text": {"content": "@김정우 ", "annotations": {"bold": True, "color": "blue"}}})
         
-    mention_content.append({"type": "text", "text": {"content": f"님, 수집이 완료되었습니다!\n총 {count}개의 새로운 항목이 검토용 DB(Staging)에 등록되었습니다. 내용을 확인하신 후 '승인 및 배포' 버튼을 눌러주세요."}})
+    mention_content.append({"type": "text", "text": {"content": f"님, 수집이 완료되었습니다!\n총 {count}개의 새로운 항목이 검토용 DB(Staging)에 등록되었습니다."}})
+
+    if integrity_report:
+        m_rating = integrity_report.get("missing_google_rating", 0)
+        m_thumb = integrity_report.get("missing_thumbnails", 0)
+        
+        integrity_summary = f"\n\n📊 **데이터 무결성 보고서**:\n- 구글 평점 누락: {m_rating} 건"
+        if m_thumb > 0:
+            integrity_summary += f"\n- 썸네일 누락: {m_thumb} 건"
+            
+        integrity_summary += f"\n\n⚠️ 누락된 정보는 검토용 DB에서 수동으로 확인해 주세요."
+        mention_content.append({"type": "text", "text": {"content": integrity_summary}})
+
+    mention_content.append({"type": "text", "text": {"content": "\n\n내용을 확인하신 후 '승인 및 배포' 버튼을 눌러주세요."}})
 
     payload = {
         "parent": {"database_id": DATABASE_ID},
@@ -198,9 +222,10 @@ def main():
                 err = resp.json().get("message", resp.text[:200])
                 print(f"  ❌ Create failed {name}: {err}")
 
-    # Create notification at the end
-    create_notification(len(rows), headers)
-    print("\n✅ Notification sent to Notion.")
+    # Create notification at the end with integrity report
+    integrity_report = check_integrity()
+    create_notification(len(rows), headers, integrity_report)
+    print("\n✅ Notification sent to Notion with Integrity Report.")
 
 if __name__ == "__main__":
     main()

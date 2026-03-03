@@ -1,0 +1,108 @@
+127.0.0.1 - - [03/Mar/2026 21:59:54] "GET /finalize-sync?token=antigravity_secret_trigger_2026 HTTP/1.1" 200 -
+/Users/jw/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+/Users/jw/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+📡 Environment aggregated from: /tmp/japanese_restaurant_data/.env
+🚀 Starting Map Data Bridge (Notion -> JSON & CSV)
+📡 Querying Notion database: 317deb1120c180b4b1d6c2900401d206
+   Collected 0 items...
+📭 No restaurants found in Notion.
+🚀 Finalizing Sync: Moving data from Staging to Main...
+  🗑️ Removing notification page: 📢 수집 완료 보고 (12건)
+  🗑️ Removing notification page: 📢 수집 완료 보고 (45건)
+📦 Found 45 data items to sync.
+  ✅ Created in Main
+  [1/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [2/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [3/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [4/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [5/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [6/45] Processed and cleared from Staging.
+  🔄 Updated in Main: 317deb11-20c1-81f7-ab07-e88ff99b7683
+  [7/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [8/45] Processed and cleared from Staging.
+  🔄 Updated in Main: 317deb11-20c1-8175-889f-ea2e348d2e18
+  [9/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [10/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [11/45] Processed and cleared from Staging.
+  🔄 Updated in Main: 317deb11-20c1-8127-93fb-e122fe068e1f
+  [12/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [13/45] Processed and cleared from Staging.
+  🔄 Updated in Main: 317deb11-20c1-8155-8da4-d6ee6f6434a8
+  [14/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [15/45] Processed and cleared from Staging.
+  🔄 Updated in Main: 317deb11-20c1-816e-93d8-cade9d57c3cf
+  [16/45] Processed and cleared from Staging.
+  🔄 Updated in Main: 317deb11-20c1-8123-bb26-f536c27d1858
+  [17/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [18/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [19/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [20/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [21/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [22/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [23/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [24/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [25/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [26/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [27/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [28/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [29/45] Processed and cleared from Staging.
+  🔄 Updated in Main: 317deb11-20c1-81c5-b2ca-edad695d6481
+  [30/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [31/45] Processed and cleared from Staging.
+  🔄 Updated in Main: 317deb11-20c1-814a-a54b-c2e18482567e
+  [32/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [33/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [34/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [35/45] Processed and cleared from Staging.
+  🔄 Updated in Main: 317deb11-20c1-81f2-81a6-f1bedf95d7ee
+  [36/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [37/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [38/45] Processed and cleared from Staging.
+  🔄 Updated in Main: 317deb11-20c1-8105-be11-e847aea58666
+  [39/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [40/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [41/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [42/45] Processed and cleared from Staging.
+  ✅ Created in Main
+  [43/45] Processed and cleared from Staging.
+  🔄 Updated in Main: 317deb11-20c1-8175-be3f-e8414c2e265c
+  [44/45] Processed and cleared from Staging.
+  🔄 Updated in Main: 317deb11-20c1-8158-80e8-d2e1dfd40778
+  [45/45] Processed and cleared from Staging.
+
+🌍 Triggering Web Map update...
+
+✨ All operations complete. Staging DB is clean.
