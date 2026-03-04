@@ -175,7 +175,8 @@ def simplify_restaurant(page):
             "서구": "니시구",
             "남구": "미나미구",
             "동구": "히가시구",
-            "중구": "나카구"
+            "중구": "나카구",
+            "신주쿠": "신주쿠구"
         }
         
         if not tag_list: return []
@@ -208,7 +209,8 @@ def simplify_restaurant(page):
         "서구": "니시구",
         "남구": "미나미구",
         "동구": "히가시구",
-        "중구": "나카구"
+        "중구": "나카구",
+        "신주쿠": "신주쿠구"
     }
     raw_region = get_select("지역")
     processed_region = raw_region
