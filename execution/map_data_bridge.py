@@ -164,15 +164,21 @@ def simplify_restaurant(page):
     
     def clean_tags(tag_list):
         """Unifies redundant tags like '발/다이닝바', '바(Bar)', etc."""
-        if not tag_list: return []
-        
-        # Tag Mapping/Unification
+        # Tag Mapping/Unification and Region Translation
         mapping = {
             "발/다이닝바": "다이닝 바",
             "다이닝바": "다이닝 바",
             "바(Bar)": "바(Bar)",
-            "발": "다이닝 바"
+            "발": "다이닝 바",
+            "중앙구": "주오구",
+            "북구": "기타구",
+            "서구": "니시구",
+            "남구": "미나미구",
+            "동구": "히가시구",
+            "중구": "나카구"
         }
+        
+        if not tag_list: return []
         
         cleaned = []
         for t in tag_list:
@@ -196,6 +202,22 @@ def simplify_restaurant(page):
     lat, lng = extract_coords_from_url(google_url)
     if lat is None:
         print(f"   🔍 Geocoding via Nominatim for: {name}")
+    region_map = {
+        "중앙구": "주오구",
+        "북구": "기타구",
+        "서구": "니시구",
+        "남구": "미나미구",
+        "동구": "히가시구",
+        "중구": "나카구"
+    }
+    raw_region = get_select("지역")
+    processed_region = raw_region
+    if raw_region:
+        for k, v in region_map.items():
+            if k in raw_region:
+                processed_region = raw_region.replace(k, v)
+                break
+
     return {
         "id": page.get("id"),
         "place_id": place_id,
@@ -205,11 +227,11 @@ def simplify_restaurant(page):
         "lat": lat,
         "lng": lng,
         "tabelog_rating": get_number("tabelog 평점"),
-        "google_rating": get_number("google 평점"),
+        "google_rating": get_number("google 점수") if "google 점수" in props else get_number("google 평점"),
         "tags": tags,
         "summary": get_plain_text("요약").replace("\n", " ").replace("\r", ""), # CRITICAL: No unescaped newlines
         "station": get_plain_text("교통"),
-        "region": get_select("지역"),
+        "region": processed_region,
         "thumbnail": get_thumbnail(),
         "google_url": google_url,
         "tabelog_url": get_url("tabelog URL"),
