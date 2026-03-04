@@ -75,8 +75,8 @@ python3 execution/webhook_receiver.py
 
 1.  노션 페이지에서 `/button`을 입력해 **버튼 블록**을 만듭니다.
 2.  **작업 추가**: **'페이지 열기' 또는 '링크 열기' (Open URL)** 선택
-3.  **URL**: `https://<너의-ngrok-주소>.ngrok-free.app/trigger-via-browser?token=<너의-토큰>` 입력
-    - 예: `https://abcd-123.ngrok-free.app/trigger-via-browser?token=japanese_restaurant_secret_2026`
+3.  **URL**: `https://<너의-ngrok-주소>.ngrok-free.app/trigger-via-browser?token=<your_random_secret_token>` 입력
+    - 예: `https://abcd-123.ngrok-free.app/trigger-via-browser?token=some_very_secret_string_123`
 4.  **완료**를 누릅니다.
 
 ### 작동 방식

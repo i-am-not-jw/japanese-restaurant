@@ -25,7 +25,11 @@ def load_env():
             pass
 
 load_env()
-GEMINI_KEY = os.getenv("GEMINI_API_KEY") or "AIzaSyDgxh1klUXODqhlIStnhU51yheeu3xxewg"
+GEMINI_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_KEY:
+    # Important: Ensure GEMINI_API_KEY is set in your environment or .env file.
+    # Falling back to an empty string or None will cause API calls to fail gracefully with an error message later.
+    GEMINI_KEY = ""
 
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)",

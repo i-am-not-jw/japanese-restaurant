@@ -16,7 +16,12 @@ def load_simple_env(path):
 env_path = "/tmp/japanese_restaurant_data/.env"
 load_simple_env(env_path)
 
-WEBHOOK_TOKEN = os.getenv("NOTION_WEBHOOK_SECRET", "antigravity_secret_trigger_2026")
+WEBHOOK_TOKEN = os.getenv("NOTION_WEBHOOK_SECRET")
+
+if not WEBHOOK_TOKEN:
+    # Important: In a production environment, you should handle this as a critical error.
+    # For now, we set a placeholder to prevent the script from crashing, but it will fail validation.
+    WEBHOOK_TOKEN = "PLACEHOLDER_TOKEN_SET_YOUR_OWN_IN_ENV"
 
 class WebhookHandler(BaseHTTPRequestHandler):
     def do_POST(self):

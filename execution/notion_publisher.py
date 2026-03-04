@@ -40,14 +40,15 @@ def load_env():
         print("⚠️ No .env file found!")
 
 load_env()
-NOTION_TOKEN  = os.getenv("NOTION_TOKEN")  or "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"
-GEMINI_KEY    = os.getenv("GEMINI_API_KEY") or "AIzaSyDgxh1klUXODqhlIStnhU51yheeu3xxewg"
+NOTION_TOKEN  = os.getenv("NOTION_TOKEN")
+GEMINI_KEY = os.getenv("GEMINI_API_KEY")
+if not GEMINI_KEY:
+    GEMINI_KEY = ""
 
 def get_database_id():
     # Priority: Main -> Staging -> Hardcoded
     return (os.getenv("NOTION_JAPAN_RESTAURANT_DB_ID") or 
-            os.getenv("NOTION_STAGING_DB_ID") or 
-            "307deb1120c1800f914fcc99c25dc0f8")
+            os.getenv("NOTION_STAGING_DB_ID"))
 
 DATABASE_ID = get_database_id()
 
