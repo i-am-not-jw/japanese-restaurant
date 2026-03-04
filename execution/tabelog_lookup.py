@@ -448,6 +448,13 @@ def extract_detail(url):
     return result
 
 
+# Japanese-centric genre keywords for prioritization
+JAPANESE_GENRES = [
+    "和食", "日本料理", "寿司", "焼鳥", "天ぷ라", "うなぎ", "懐石", "割烹", 
+    "そば", "うどん", "ラーメン", "揚げ物", "とんかつ", "お好み焼き", "鉄板焼き",
+    "居酒屋", "焼き鳥", "おでん", "串揚げ", "海鮮", "魚介"
+]
+
 def scrape_tabelog_trending(region="tokyo", max_results=5):
     url = f"https://tabelog.com/{region}/rstLst/?SrtT=trend"
     print(f"Tabelog trending [{region}]: {url}")
@@ -455,13 +462,10 @@ def scrape_tabelog_trending(region="tokyo", max_results=5):
         resp = requests.get(url, headers=HEADERS, timeout=15)
         soup = BeautifulSoup(resp.text, "html.parser")
         items = soup.select(".list-rst__wrap")
-        print(f"  {len(items)} candidates")
+        print(f"  {len(items)} initial candidates found on search page")
 
-        results = []
+        candidates = []
         for item in items:
-            if len(results) >= max_results:
-                break
-
             name_elem = item.select_one(".list-rst__rst-name-target")
             score_elem = item.select_one(".c-rating__val")
             area_elem  = item.select_one(".list-rst__area-genre")
@@ -473,7 +477,6 @@ def scrape_tabelog_trending(region="tokyo", max_results=5):
             cuisine   = area_text.split("/", 1)[1].strip() if "/" in area_text else ""
 
             if is_korean(name + cuisine):
-                print(f"  ⛔ Korean skip: {name}")
                 continue
 
             link = name_elem.get("href", "")
@@ -486,28 +489,48 @@ def scrape_tabelog_trending(region="tokyo", max_results=5):
             except:
                 pass
 
-            print(f"  [{len(results)+1}/{max_results}] {name}")
-            detail = extract_detail(link) if link else {}
+            # Calculate Priority: 1 if Japanese, 0 otherwise
+            is_jap = any(k in cuisine for k in JAPANESE_GENRES) or any(k in name for k in JAPANESE_GENRES)
+            priority = 1 if is_jap else 0
+            
+            candidates.append({
+                "name": name,
+                "score": score,
+                "cuisine": cuisine,
+                "link": link,
+                "priority": priority
+            })
+
+        # Sort: Primary by priority (Japanese first), Secondary by Tabelog score
+        candidates.sort(key=lambda x: (x["priority"], x["score"]), reverse=True)
+        print(f"  Sorted {len(candidates)} candidates. Priority count: {sum(1 for c in candidates if c['priority'] == 1)}")
+
+        results = []
+        for i, c in enumerate(candidates):
+            if len(results) >= max_results:
+                break
+            
+            print(f"  [{len(results)+1}/{max_results}] Processing: {c['name']} ({c['cuisine']})")
+            detail = extract_detail(c["link"]) if c["link"] else {}
             time.sleep(random.uniform(0.6, 1.2))
 
             results.append({
-                "name":                name,
-                "tabelog_score":       score,
-                "cuisine_raw":         cuisine,
-                "tabelog_url":         link,
+                "name":                c["name"],
+                "tabelog_score":       c["score"],
+                "cuisine_raw":         c["cuisine"],
+                "tabelog_url":         c["link"],
                 "thumbnail":           detail.get("thumbnail", ""),
                 "address":             detail.get("address", ""),
-                "tabelog_reviews":     detail.get("reviews", []),      # [{date, text}]
+                "tabelog_reviews":     detail.get("reviews", []),
                 "tabelog_review_count": detail.get("review_count", 0),
                 "tabelog_latest_date": detail.get("latest_review_date", ""),
                 "opening_hours":       detail.get("opening_hours", ""),
                 "payment_tags":        detail.get("payment_tags", []),
                 "station_info":        detail.get("station_info", ""),
                 "region":              REGION_MAP.get(region, "도쿄"),
-                # filled by subsequent scripts:
                 "google_rating":       0.0,
                 "google_review_count": 0,
-                "google_reviews":      [],   # [{date, text}]
+                "google_reviews":      [],
                 "google_maps_url":     "",
             })
         return results
