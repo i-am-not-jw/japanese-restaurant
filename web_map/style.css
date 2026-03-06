@@ -252,3 +252,66 @@ body {
     transform: scale(1.1);
     z-index: 999;
 }
+
+/* Celebrity Marker - Circular Avatar */
+.celeb-marker {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 3px solid #FFD700;
+    /* Gold Border */
+    background-size: cover;
+    background-position: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    position: relative;
+    z-index: 10;
+}
+
+.celeb-marker::after {
+    content: "⭐";
+    position: absolute;
+    bottom: -5px;
+    right: -5px;
+    background: white;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.celeb-marker:hover {
+    transform: scale(1.2);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+    z-index: 1001;
+}
+
+/* Celeb Badge in Info Panel */
+.celeb-badge {
+    background: linear-gradient(135deg, #FFF9C4 0%, #FFF59D 100%);
+    border: 1px solid #FBC02D;
+    padding: 10px 16px;
+    border-radius: 12px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 700;
+    color: #F57F17;
+    font-size: 14px;
+}
+
+.celeb-link {
+    font-size: 12px;
+    background: #F57F17;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    text-decoration: none;
+    margin-left: auto;
+}

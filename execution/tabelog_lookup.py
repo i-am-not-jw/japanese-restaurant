@@ -400,6 +400,8 @@ def extract_detail(url):
                                             STATION_CACHE[cache_key] = ai_prefix
                                             ko_prefix = ai_prefix
                                             print(f"      -> Prefix Translated: {ai_prefix}")
+                                    else:
+                                        print(f"      -> Prefix Translation Failed ({resp2.status_code}): {resp2.text[:100]}")
                                 except requests.exceptions.Timeout:
                                     print(f"      -> Rail Line Translation Timeout — 원본 유지: {ko_prefix}")
                                 except Exception as e:
@@ -425,7 +427,11 @@ def extract_detail(url):
                     if station_info and re.search(r"[\u4e00-\u9faf\u3040-\u309f\u30a0-\u30ff]", station_info):
                         if GEMINI_KEY:
                             print(f"    [AI SWEEP] Cleaning remaining Japanese in station info: {station_info}")
-                            prompt = f"일본어와 한자가 섞인 지하철 역 정보 '{station_info}'을(를) 완벽한 한국어(한글)로 변환하세요. (예: 🚇 札幌市営東豊線 삿포로역 -> 🚇 삿포로 시영 토호선 삿포로역). '🚇' 같은 아이콘은 그대로 유지하고, 부연 설명 없이 결과만 한 줄로 출력하세요."
+                            prompt = (
+                                f"일본어와 한자가 섞인 지하철 역 정보 '{station_info}'을(를) 완벽한 100% 한국어로만 번역하세요. "
+                                "절대로 결과에 일본어(히라가나, 가타카나, 한자)를 남겨두거나 병기하지 마세요. (예: 🚇 도쿄메트로 마루노우치선 신주쿠교엔마에역에서 도보 5분). "
+                                "'🚇' 아이콘은 유지하고, 오직 한국어와 숫자, 기호만 사용한 최종 결과 한 줄만 출력하세요."
+                            )
                             url_pro = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={GEMINI_KEY}"
                             try:
                                 resp2 = requests.post(url_pro, json={"contents": [{"parts": [{"text": prompt}]}]}, timeout=10)
@@ -434,8 +440,10 @@ def extract_detail(url):
                                     if clean_info:
                                         print(f"      -> Sweep Result: {clean_info}")
                                         station_info = clean_info
-                            except Exception:
-                                pass
+                                else:
+                                    print(f"      -> Sweep failed ({resp2.status_code}): {resp2.text[:100]}")
+                            except Exception as e:
+                                print(f"      -> Sweep error: {e}")
 
         result["reviews"] = reviews
         result["latest_review_date"] = latest_date

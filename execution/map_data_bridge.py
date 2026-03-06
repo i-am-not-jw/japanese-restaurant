@@ -141,7 +141,13 @@ def simplify_restaurant(page):
     def get_thumbnail():
         files = props.get("썸네일", {}).get("files", [])
         if files:
-            # Handle both internal Notion files and external URLs
+            f = files[0]
+            return f.get("external", {}).get("url") or f.get("file", {}).get("url")
+        return None
+
+    def get_recommender_image():
+        files = props.get("추천인 사진", {}).get("files", [])
+        if files:
             f = files[0]
             return f.get("external", {}).get("url") or f.get("file", {}).get("url")
         return None
@@ -238,7 +244,10 @@ def simplify_restaurant(page):
         "google_url": google_url,
         "tabelog_url": get_url("tabelog URL"),
         "created_at": get_time("생성 일시"),
-        "updated_at": get_time("최종 편집 일시")
+        "updated_at": get_time("최종 편집 일시"),
+        "recommender": get_multi_select("추천인"),
+        "source_url": get_url("출처 링크"),
+        "recommender_image": get_recommender_image()
     }
 
 def save_csv(restaurants, output_path):
@@ -313,9 +322,12 @@ def main():
     
     # 1. Save Web JSON
     json_path = os.path.join(web_data_dir, "restaurants.json")
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(processed, f, ensure_ascii=False, indent=2)
-    print(f"✅ Web JSON saved to {json_path}")
+    try:
+        with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(processed, f, ensure_ascii=False, indent=2)
+        print(f"✅ Web JSON saved to {json_path}")
+    except PermissionError:
+        print(f"⚠️ Permission Error writing to {json_path}. This is expected on some macOS setups. Please run the sync manually if needed.")
     
     # 2. Save Regional CSVs (for Monetization)
     regions = {}
@@ -338,7 +350,11 @@ def main():
 
     # 4. Inject into index.html
     html_path = os.path.join(base_dir, "web_map", "index.html")
-    inject_to_html(processed, html_path)
+    try:
+        inject_to_html(processed, html_path)
+        print(f"💉 Injected {len(processed)} items into index.html")
+    except PermissionError:
+        print(f"⚠️ Permission Error injecting into {html_path}. Data bridge logic executed but HTML update failed.")
     
     print(f"🌟 Full CSV export saved to {all_csv_path}")
 

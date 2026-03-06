@@ -49,6 +49,7 @@ const CUISINE_GROUPS = [
 let activeRegion = null;
 let activeSubRegion = null;
 let activeCuisine = null;
+let activeCeleb = null;
 
 function getTagStyle(tag) {
     if (tag.includes("맛집") || tag.includes("인증") || tag.includes("레전드") || tag.includes("💡") || tag.includes("🏆")) return TAG_COLORS["badge"];
@@ -106,6 +107,21 @@ function setupFilters() {
         cuisineSelect.appendChild(optgroup);
     });
 
+    // Populate Celebrity Dropdown
+    const celebSelect = document.getElementById("celeb-select");
+    const celebs = new Set();
+    (window.RESTAURANT_DATA || []).forEach(res => {
+        if (res.recommender) {
+            res.recommender.forEach(c => celebs.add(c));
+        }
+    });
+    celebs.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c;
+        opt.textContent = c;
+        celebSelect.appendChild(opt);
+    });
+
     // Event Listeners
     regionSelect.onchange = (e) => {
         activeRegion = e.target.value;
@@ -116,6 +132,11 @@ function setupFilters() {
 
     cuisineSelect.onchange = (e) => {
         activeCuisine = e.target.value;
+        renderMarkers();
+    };
+
+    celebSelect.onchange = (e) => {
+        activeCeleb = e.target.value;
         renderMarkers();
     };
 }
@@ -171,21 +192,25 @@ function renderMarkers() {
         if (activeRegion && !res.region.includes(activeRegion)) return;
         if (activeSubRegion && !res.tags.some(t => t.includes(activeSubRegion)) && !res.address.includes(activeSubRegion)) return;
         if (activeCuisine && !res.tags.some(t => t.includes(activeCuisine)) && !res.summary.includes(activeCuisine)) return;
+        if (activeCeleb && (!res.recommender || !res.recommender.includes(activeCeleb))) return;
 
         const markerElement = document.createElement("div");
-        markerElement.className = "category-marker";
-        // Simple icon determination for now (reuse SYMBOLS)
-        let icon = "🥢";
-        if (res.tags.includes("이자카야")) icon = "🏮";
-        if (res.tags.includes("카페")) icon = "🍵";
 
-        markerElement.innerHTML = `<div class="category-marker-inner">${icon}</div>`;
+        // Face Marker Logic
+        if (res.recommender_image) {
+            markerElement.className = "celeb-marker";
+            markerElement.style.backgroundImage = `url('${res.recommender_image}')`;
+        } else {
+            markerElement.className = "category-marker";
+            markerElement.innerHTML = `<div style="font-size: 32px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">📍</div>`;
+        }
 
         const marker = new google.maps.marker.AdvancedMarkerElement({
             position: { lat: parseFloat(res.lat), lng: parseFloat(res.lng) },
             map: map,
             title: res.name,
-            content: markerElement
+            content: markerElement,
+            gmpClickable: true
         });
 
         marker.addListener("click", () => {
@@ -240,6 +265,12 @@ function showDetails(res) {
     panel.innerHTML = `
         <div class="card-header">${photoHtml}</div>
         <div class="card-body">
+            ${res.recommender && res.recommender.length > 0 ? `
+            <div class="celeb-badge">
+                👤 ${res.recommender.join(', ')} 추천성지
+                ${res.source_url ? `<a href="${res.source_url}" target="_blank" class="celeb-link">출처 보기</a>` : ''}
+            </div>
+            ` : ''}
             <div class="restaurant-name">${res.name}</div>
             <div class="rating-row">
                 <span class="rating-badge rating-tabelog">Tabelog ${res.tabelog_rating || '?'}</span>

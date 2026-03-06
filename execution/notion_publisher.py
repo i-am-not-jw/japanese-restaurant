@@ -87,7 +87,7 @@ def gemini_summarize(tabelog_reviews, google_reviews, restaurant_name):
             print(f"    [RATELIMIT] Gemini Flash-latest 429 Too Many Requests -> Exiting")
             sys.exit(429)
         print(f"    Gemini latest error: {resp2.status_code} {resp2.reason}")
-        return f"요약 실패 (에러 {resp.status_code})"
+        return f"요약 실패 (에러 {resp2.status_code})"
     except Exception as e:
         print(f"    Gemini API call error: {e}")
         # Fallback: plain concatenation
